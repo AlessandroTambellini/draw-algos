@@ -6,17 +6,19 @@
 */
 
 const grid = document.querySelector('#grid');
+
 const clear_btn = document.querySelector('#clear-btn');
 const draw_walls_btn = document.querySelector('#draw-walls-btn');
 const select_targets_btn = document.querySelector('#select-targets-btn');
 const select_bfs_root_btn = document.querySelector('#select-bfs-root');
 const run_btn = document.querySelector('#run-btn');
+const stop_btn = document.querySelector('#stop-btn');
+
 const btns_container = document.querySelector('#btns-container');
 
 let draw_walls = false;
 let select_targets = false;
 let select_bfs_root = false;
-let run = true;
 
 let mouse_down = false;
 // There can be just a single bfs root point
@@ -27,16 +29,21 @@ let prev_target_hover = null;
 let prev_bfsroot_hover = null;
 let active_btn = draw_walls_btn; // Just a random initial one
 
-class Pos {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-}
+// let bfsroot_pos;
+let bfsroot_x;
+let bfsroot_y;
 
-let bfsroot_pos;
-const targets = new Set();
-const walls = new Set();
+const data = {
+    'steps': 0,
+    'target_reached': false
+};
+
+// class Pos {
+//     constructor(x, y) {
+//         this.x = x;
+//         this.y = y;
+//     }
+// }
 
 // 1) build the grid
 for (let i = 0; i < 20; i++) {
@@ -60,16 +67,12 @@ If I drag over the cells, the mouseup is not detected.
 I guess that's because the drop event interferes with mouseup.
 So, I disable the dragging on the cells
 */
-document.addEventListener('dragstart', e => {
-    e.preventDefault();
-});
+document.addEventListener('dragstart', e => e.preventDefault());
 document.addEventListener('mousedown', (e) => {
     // 0 is the left button
     if (e.button === 0) mouse_down = true;
 });
-document.addEventListener('mouseup', (e) => {
-    mouse_down = false;
-});
+document.addEventListener('mouseup', () => mouse_down = false);
 
 /**
  * 
@@ -86,6 +89,7 @@ clear_btn.addEventListener('click', (e) => {
             cell.classList.remove('wall');
             cell.classList.remove('target');
             cell.classList.remove('bfsroot');
+            cell.classList.remove('visited');
         });
     });
     bfsroot_selected = false;
@@ -122,32 +126,29 @@ select_bfs_root_btn.addEventListener('click', e => {
     active_btn = e.target;
 });
 
-run_btn.addEventListener('click', (e) => {
-    draw_walls = false;
-    select_targets = false;
-    select_bfs_root = false;
+run_btn.addEventListener('click', e => {
     active_btn.classList.remove('btn-active');
     e.target.classList.add('btn-active');
     active_btn = e.target;
 
-    run = !run;
+    draw_walls = false;
+    select_targets = false;
+    select_bfs_root = false;
 
-    if (run) {
-        run_btn.textContent = 'run';
-        btns_container.childNodes.forEach(btn => btn.disabled = false);
-        stop_bfs_execution = true;
-    } else {
-        run_btn.textContent = 'stop';
-        btns_container.childNodes.forEach(btn => {
-            if (btn !== run_btn) btn.disabled = true;
-        });
-    }
-
-    // console.log(walls)
-    // console.log(targets)
-    // console.log(bfsroot_pos)
-    // const v_grid = virtual_grid(grid);
+    btns_container.childNodes.forEach(btn => {
+        if (btn !== stop_btn) btn.disabled = true;
+    });
+    
     start_bfs();
+});
+
+stop_btn.addEventListener('click', async e => {
+    stop_bfs_execution = true;
+    const steps_li = document.querySelector('#data-steps');
+    const target_reached_li = document.querySelector('#data-target-reached');
+    steps_li.textContent = steps_li.textContent + data.steps;
+    target_reached_li.textContent = target_reached_li.textContent + data.target_reached;
+    btns_container.childNodes.forEach(btn => btn.disabled = false);
 });
 
 /*
@@ -174,7 +175,6 @@ grid.addEventListener('mouseover', e => {
         if (!e.target.classList.contains('target') &&
             !e.target.classList.contains('bfsroot')) {
             e.target.classList.add('wall');
-            walls.add(e.target.textContent);
         }
     }
 
@@ -213,7 +213,6 @@ grid.addEventListener('click', e => {
         if (!e.target.classList.contains('target') &&
             !e.target.classList.contains('bfsroot')) {
             e.target.classList.add('wall');
-            walls.add(e.target.textContent);
         }
     }
     if (select_targets) {
@@ -222,7 +221,6 @@ grid.addEventListener('click', e => {
             // No need to check whether the class is already present.
             // In that case is simply omitted
             e.target.classList.add('target');
-            targets.add(e.target.textContent);
         }
     }
     if (select_bfs_root && !bfsroot_selected) {
@@ -233,11 +231,85 @@ grid.addEventListener('click', e => {
             bfsroot_selected = true;
             const x = Number(e.target.textContent.split(',')[0]);
             const y = Number(e.target.textContent.split(',')[1]);
-            bfsroot_pos = new Pos(x, y);
+            // bfsroot_pos = new Pos(x, y);
+            bfsroot_x = x;
+            bfsroot_y = y;
         }
     }
 });
 
+async function start_bfs() {
+    const visited = new Set();
+    // await explore(bfsroot_x, bfsroot_y, visited, data);
+
+    const explore2 = async (x, y, visited) => {
+        const q = [];
+        q.push(grid.childNodes[x].childNodes[y]);
+        let target_found = false;
+        while (q.length > 0) {
+            const curr = q.shift();
+            if (curr.classList.contains('wall')) continue;
+            if (curr.classList.contains('target')) {
+                target_found = true;
+                break;
+            }
+            const curr_x = Number(curr.textContent.split(',')[0]);
+            const curr_y = Number(curr.textContent.split(',')[1]);
+            if (visited.has(curr_x + ',' + curr_y)) continue;
+            visited.add(curr_x + ',' + curr_y);
+            curr.classList.add('visited');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            if (curr_x > 0) q.push(grid.childNodes[curr_x - 1].childNodes[curr_y]);
+            if (curr_y < grid.childNodes[curr_x].childNodes.length - 1) q.push(grid.childNodes[curr_x].childNodes[curr_y + 1]);
+            if (curr_x < grid.childNodes.length - 1) q.push(grid.childNodes[curr_x + 1].childNodes[curr_y]);
+            if (curr_y > 0) q.push(grid.childNodes[curr_x].childNodes[curr_y - 1]);
+        }
+
+        if (target_found) console.log('target found!');
+    }
+
+    explore2(bfsroot_x, bfsroot_y, visited);
+}
+
+async function explore(x, y, visited, data) {
+    const x_in_bounds = 0 <= x && x < grid.childNodes.length;
+    const y_in_bounds = 0 <= y && y < grid.childNodes[0].childNodes.length;
+    if (!x_in_bounds || !y_in_bounds) return;
+    
+    const curr_cell = grid.childNodes[x].childNodes[y];
+    
+    const pos = x + ',' + y;
+    if (visited.has(pos)) return;
+    visited.add(pos);
+    
+    if (curr_cell.classList.contains('wall')) return;
+    if (curr_cell.classList.contains('target')) {
+        data.target_reached = true;
+        document.querySelector('#data-steps').textContent += data.steps;
+        document.querySelector('#data-target-reached').textContent += data.target_reached;
+        return;
+    }
+    
+    curr_cell.classList.add('visited');
+    data.steps += 1;
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    if (stop_bfs_execution || data.target_reached) return;
+    
+    await explore(x - 1, y, visited, data);
+    await explore(x + 1, y, visited, data);
+    await explore(x, y - 1, visited, data);
+    await explore(x, y + 1, visited, data);
+
+    return;
+}
+
+// ----------------------------
+/*
+async-await is harder than what it seems
+*/
 function virtual_grid(grid) {
     
     const v_grid = Array.from({ length: grid.childNodes.length }, 
@@ -255,44 +327,4 @@ function virtual_grid(grid) {
     return v_grid;
 }
 
-async function start_bfs() {
-    const visited = new Set();
-    await explore(bfsroot_pos.x, bfsroot_pos.y, visited);
-}
-
-let i = 0;
-async function explore(x, y, visited) {
-    if (stop_bfs_execution) return;
-    // console.log('entered function', ++i);
-    const x_in_bounds = 0 <= x && x < grid.childNodes.length;
-    const y_in_bounds = 0 <= y && y < grid.childNodes[0].childNodes.length;
-    if (!x_in_bounds || !y_in_bounds) return;
-
-    const curr_cell = grid.childNodes[x].childNodes[y];
-
-    // The waiting is just to let the user observe the algorithmic steps
-    await sleep(1000);
-
-    if (curr_cell.classList.contains('target')) return;
-    if (curr_cell.classList.contains('wall')) return;
-
-    const pos = x + ',' + y;
-    if (visited.has(pos)) {
-        // console.log('already visited: ', x, y);
-        return;
-    }
-
-    visited.add(pos);
-    curr_cell.classList.add('visited');
-
-    explore(x - 1, y, visited)
-    explore(x + 1, y, visited)
-    explore(x, y - 1, visited)
-    explore(x, y + 1, visited)
-    return;
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
 
