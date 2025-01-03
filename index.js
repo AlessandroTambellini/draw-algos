@@ -25,13 +25,13 @@ let history_idx = -1;
 
 let targets = 0;
 
-let draw_walls = false;
-let select_targets = false;
-let select_bfs_root = false;
+// 'f' stands for flag
+let f_draw_walls = false;
+let f_select_targets = false;
+let f_select_bfs_root = false;
 
 let mouse_down = false;
-// There can be just a single bfs root point
-let bfsroot_selected = false;
+
 let bfsroot = null;
 let bfs_freezed = false;
 
@@ -82,9 +82,8 @@ document.addEventListener('mouseup', () => mouse_down = false);
  */
 
 clear_btn.addEventListener('click', (e) => {
-    select_targets = false;
-    draw_walls = false;
-    select_bfs_root = false;
+    f_select_targets = false;
+    f_draw_walls = false;
 
     grid.childNodes.forEach(row => {
         row.childNodes.forEach(cell => {
@@ -94,28 +93,26 @@ clear_btn.addEventListener('click', (e) => {
             cell.classList.remove('visited');
         }); 
     });
-    bfsroot_selected = false;
-    // run_btn.disabled = true;
-    document.querySelector('#err-msg').textContent = '';
-
+    bfsroot = null;
+    f_select_bfs_root = true;
 });
 
 draw_walls_btn.addEventListener('click', (e) => {
-    select_targets = false;
-    select_bfs_root = false;
-    draw_walls = true;
+    f_select_targets = false;
+    f_draw_walls = true;
 });
 
 select_targets_btn.addEventListener('click', (e) => {
-    draw_walls = false;
-    select_targets = true;
-    select_bfs_root = false;
+    f_draw_walls = false;
+    f_select_targets = true;
 });
 
 select_bfs_root_btn.addEventListener('click', e => {
-    draw_walls = false;
-    select_targets = false;
-    select_bfs_root = true;
+    f_draw_walls = false;
+    f_select_targets = false;
+
+    if (!bfsroot) f_select_bfs_root = true;
+    else console.error('Error: select_bfs_root_btn: bfs root already selected.');
 });
 
 let is_run = true;
@@ -134,6 +131,7 @@ run_btn.addEventListener('click', async e =>
         run_btn.disabled = false;
         stop_btn.disabled = true;
         stop_btn.textContent = 'stop';
+        bfs_freezed = false;
         is_stop = !is_stop;
     }
     else
@@ -142,31 +140,31 @@ run_btn.addEventListener('click', async e =>
         is to have the bfsroot selected. 
         The target is not needed because I may want to just visualize the 
         algorithmic pattern. Same reason for walls. */
-        if (!bfsroot_selected) {
+        if (!bfsroot) {
             document.querySelector('#err-msg').textContent = 'Error: no bfsroot selected.';
             return;
         }
 
         /* I want the UI change to be as fast as possible.
         So, it is the first thing I do. */
+        run_btn.disabled = true;
         run_btn.textContent = 'reset';
 
-        // TODO move is_run --> do you remember fork()?
         is_run = false;
     
-        draw_walls = false;
-        select_targets = false;
-        select_bfs_root = false;
+        f_draw_walls = false;
+        f_select_targets = false;
     
-        btns_container.childNodes.forEach(btn => {
-            stop_btn.disabled = false;
-            if (btn !== stop_btn && btn !== run_btn) btn.disabled = true;
-        });
+        btns_container.childNodes.forEach(btn => btn.disabled = true);
+        stop_btn.disabled = false;
         
         let algo_name = 'bfs';
         document.querySelectorAll('.algo').forEach(input => {
-            if (input.checked) algo_name = input.value;
-        })
+            if (input.checked) {
+                algo_name = input.value;
+                return;
+            }
+        });
         if (algo_name === 'bfs') await bfs();
         else if (algo_name === 'dfs') await dfs();
         else {
@@ -193,6 +191,7 @@ stop_btn.addEventListener('click', async e => {
         run_btn.disabled = false;
         is_stop = !is_stop;
     } else {
+        run_btn.disabled = true;
         stop_btn.textContent = 'stop';
         /* what happens if I reach this exact point and 
         the user immediately clicks again? */
@@ -223,7 +222,7 @@ grid.addEventListener('mouseover', e => {
         return;
     }
 
-    if (mouse_down && draw_walls) {
+    if (mouse_down && f_draw_walls) {
         if (mousedown_target) {
             mousedown_target.classList.add('wall');
             mousedown_target = null;
@@ -235,7 +234,7 @@ grid.addEventListener('mouseover', e => {
         }
     }
 
-    if (select_targets) {
+    if (f_select_targets) {
         if (!e.target.classList.contains('wall') &&
             !e.target.classList.contains('bfsroot')) {
             if (prev_target_hover) prev_target_hover.classList.remove('target-hover');
@@ -244,7 +243,7 @@ grid.addEventListener('mouseover', e => {
         }
     }
 
-    if (select_bfs_root && !bfsroot_selected) {
+    if (f_select_bfs_root && !bfsroot) {
         if (!e.target.classList.contains('wall') &&
             !e.target.classList.contains('target')) {
             if (prev_bfsroot_hover) prev_bfsroot_hover.classList.remove('bfsroot-hover');
@@ -266,14 +265,14 @@ grid.addEventListener('click', e => {
         - left button + move
         - click
     */
-    if (/*!mouse_down &&*/ draw_walls) {
+    if (/*!mouse_down &&*/ f_draw_walls) {
         if (!e.target.classList.contains('target') &&
             !e.target.classList.contains('bfsroot')) {
             e.target.classList.add('wall');
             update_history('wall', e.target.textContent);
         }
     }
-    if (select_targets) {
+    if (f_select_targets) {
         if (!e.target.classList.contains('wall') &&
             !e.target.classList.contains('bfsroot')) {
             // No need to check whether the class is already present.
@@ -283,16 +282,20 @@ grid.addEventListener('click', e => {
             update_history('target', e.target.textContent);
         }
     }
-    if (select_bfs_root && !bfsroot_selected) {
+    if (f_select_bfs_root && !bfsroot) {
         if (!e.target.classList.contains('wall') &&
             !e.target.classList.contains('target')) {
             bfsroot = e.target;
             bfsroot.classList.remove('bfsroot-hover');
             bfsroot.classList.add('bfsroot');
-            bfsroot_selected = true;
             run_btn.disabled = false;
             select_bfs_root_btn.disabled = true;
             update_history('bfsroot', e.target.textContent);
+
+            /* as soon as the bfsroot is selected, 
+            I set the flag to false because no other roots
+            can be selected. */
+            f_select_bfs_root = false;
         }
     }
 });
@@ -319,7 +322,7 @@ async function bfs()
         If, for instance, I enter the inspection panel of the browser 
         and I remove the disabled attribute from the stop button,
         I can click 2 times on this last button to call
-        bfs() without bfsroot being defined */
+        bfs() without bfsroot being defined. */
         console.error('Error: no bfsroot selected.');
         return;
     }
