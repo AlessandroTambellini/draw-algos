@@ -311,14 +311,25 @@ function reset_freezed_data() {
 
 async function bfs() 
 {
+    if (!bfsroot) {
+        /* I want the algos API to be independent from the UI 
+        (more precisely, the HTML). So, I do not assume the bfsroot
+        to be defined when bfs() is called, even though it cannot
+        happen by 'following the UI'.
+        If, for instance, I enter the inspection panel of the browser 
+        and I remove the disabled attribute from the stop button,
+        I can click 2 times on this last button to call
+        bfs() without bfsroot being defined */
+        console.error('Error: no bfsroot selected.');
+        return;
+    }
+
     const visited = freezed_visited === null ? new Set() : freezed_visited;
-    let q;
-    if (freezed_q !== null) q = freezed_q;
-    else q = [ bfsroot ];
-    // const q = [ bfsroot ]; // I can assume bfsroot != null
+    const q = freezed_q !== null ? freezed_q : [ bfsroot ];
     let targets_found = freezed_targets_found;
     let steps = freezed_steps;
-    while (q.length > 0) {
+    while (q.length > 0) 
+    {
         if (bfs_freezed) {
             freezed_q = q;
             freezed_visited = visited;
@@ -360,6 +371,10 @@ async function bfs()
 // grid could be a parameter
 async function dfs() 
 {
+    if (!bfsroot) {
+        console.error('Error: dfs: no bfsroot defined.');
+        return;
+    }
     const visited = new Set();
     let targets_found = 0;
     let steps = 0;
