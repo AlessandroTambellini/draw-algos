@@ -6,15 +6,24 @@
 */
 
 const grid = document.querySelector('#grid');
+const btns_container = document.querySelector('#btns-container');
 
 const clear_btn = document.querySelector('#clear-btn');
 const draw_walls_btn = document.querySelector('#draw-walls-btn');
 const select_targets_btn = document.querySelector('#select-targets-btn');
 const select_bfs_root_btn = document.querySelector('#select-bfs-root');
+//
 const run_btn = document.querySelector('#run-btn');
 const stop_btn = document.querySelector('#stop-btn');
+//
+const undo_btn = document.querySelector('#undo-btn');
+const redo_btn = document.querySelector('#redo-btn');
 
-const btns_container = document.querySelector('#btns-container');
+const history_dim = 10;
+const history = new Array(history_dim);
+let history_idx = -1;
+
+let targets = 0;
 
 let draw_walls = false;
 let select_targets = false;
@@ -28,7 +37,6 @@ let bfs_freezed = false;
 
 let prev_target_hover = null;
 let prev_bfsroot_hover = null;
-let active_btn = draw_walls_btn; // Just a random initial one
 
 // 1) build the grid
 for (let i = 0; i < 20; i++) {
@@ -52,10 +60,19 @@ If I drag over the cells, the mouseup is not detected.
 I guess that's because the drop event interferes with mouseup.
 So, I disable the dragging on the cells
 */
+let mousedown_target = null;
 document.addEventListener('dragstart', e => e.preventDefault());
 document.addEventListener('mousedown', (e) => {
     // 0 is the left button
-    if (e.button === 0) mouse_down = true;
+    if (e.button === 0) {
+        mouse_down = true;
+        if (e.target.classList.contains('cell') &&
+            !e.target.classList.contains('wall') &&
+            !e.target.classList.contains('bfsroot') &&
+            !e.target.classList.contains('target')) {
+            mousedown_target = e.target;
+        }
+    }
 });
 document.addEventListener('mouseup', () => mouse_down = false);
 
@@ -75,70 +92,115 @@ clear_btn.addEventListener('click', (e) => {
             cell.classList.remove('target');
             cell.classList.remove('bfsroot');
             cell.classList.remove('visited');
-        });
+        }); 
     });
     bfsroot_selected = false;
+    // run_btn.disabled = true;
+    document.querySelector('#err-msg').textContent = '';
 
-    active_btn.classList.remove('btn-active');
-    e.target.classList.add('btn-active');
-    active_btn = e.target;
 });
 
 draw_walls_btn.addEventListener('click', (e) => {
     select_targets = false;
     select_bfs_root = false;
     draw_walls = true;
-    active_btn.classList.remove('btn-active');
-    e.target.classList.add('btn-active');
-    active_btn = e.target;
 });
 
 select_targets_btn.addEventListener('click', (e) => {
     draw_walls = false;
     select_targets = true;
     select_bfs_root = false;
-    active_btn.classList.remove('btn-active');
-    e.target.classList.add('btn-active');
-    active_btn = e.target;
 });
 
 select_bfs_root_btn.addEventListener('click', e => {
     draw_walls = false;
     select_targets = false;
     select_bfs_root = true;
-    active_btn.classList.remove('btn-active');
-    e.target.classList.add('btn-active');
-    active_btn = e.target;
 });
 
-run_btn.addEventListener('click', async e => {
-    active_btn.classList.remove('btn-active');
-    e.target.classList.add('btn-active');
-    active_btn = e.target;
+let is_run = true;
+run_btn.addEventListener('click', async e => 
+{
+    if (!is_run) // is reset
+    { 
+        reset_freezed_data();
+        grid.childNodes.forEach(row => {
+            row.childNodes.forEach(cell => {
+                cell.classList.remove('visited');
+            });
+        });
+        is_run = true;
+        run_btn.textContent = 'run';
+        run_btn.disabled = false;
+        stop_btn.disabled = true;
+        stop_btn.textContent = 'stop';
+        is_stop = !is_stop;
+    }
+    else
+    {
+        /* The only condition to run the algo,
+        is to have the bfsroot selected. 
+        The target is not needed because I may want to just visualize the 
+        algorithmic pattern. Same reason for walls. */
+        if (!bfsroot_selected) {
+            document.querySelector('#err-msg').textContent = 'Error: no bfsroot selected.';
+            return;
+        }
 
-    draw_walls = false;
-    select_targets = false;
-    select_bfs_root = false;
+        /* I want the UI change to be as fast as possible.
+        So, it is the first thing I do. */
+        run_btn.textContent = 'reset';
 
-    btns_container.childNodes.forEach(btn => {
-        if (btn !== stop_btn) btn.disabled = true;
-    });
+        // TODO move is_run --> do you remember fork()?
+        is_run = false;
     
-    // if bfs is not freezed, run bfs
-    // if (bfs_freezed) {
-
-    // } else {
-    //     bfs();
-    // }
-
-    // otherwise, resume execution
-
-    await dfs();
+        draw_walls = false;
+        select_targets = false;
+        select_bfs_root = false;
+    
+        btns_container.childNodes.forEach(btn => {
+            stop_btn.disabled = false;
+            if (btn !== stop_btn && btn !== run_btn) btn.disabled = true;
+        });
+        
+        let algo_name = 'bfs';
+        document.querySelectorAll('.algo').forEach(input => {
+            if (input.checked) algo_name = input.value;
+        })
+        if (algo_name === 'bfs') await bfs();
+        else if (algo_name === 'dfs') await dfs();
+        else {
+            /* 'wrong' is a really bad name for an algo
+            and can be confused with the fact that the algo
+            is actually wrong. */
+            console.log('wrong algo selected');
+        }
+        
+        if (!bfs_freezed) {
+            btns_container.childNodes.forEach(btn => {
+                stop_btn.disabled = true;
+                if (btn !== stop_btn) btn.disabled = false;
+            });
+        }
+    }
 });
 
+let is_stop = true;
 stop_btn.addEventListener('click', async e => {
-    bfs_freezed = true;
-    btns_container.childNodes.forEach(btn => btn.disabled = false);
+    if (is_stop) {
+        bfs_freezed = true;
+        stop_btn.textContent = 'resume';
+        run_btn.disabled = false;
+        is_stop = !is_stop;
+    } else {
+        stop_btn.textContent = 'stop';
+        /* what happens if I reach this exact point and 
+        the user immediately clicks again? */
+        is_stop = !is_stop;
+        bfs_freezed = false;
+        await bfs();
+    }
+    // btns_container.childNodes.forEach(btn => btn.disabled = false);
 });
 
 /*
@@ -148,12 +210,12 @@ stop_btn.addEventListener('click', async e => {
 */
 grid.addEventListener('mouseover', e => {
     /*
-        It's used mouseover and not mousemove because I want this callback
-        function to be called for every child-most node hovered (a cell in this case). 
-        But, not for every single movement inside a cell
+    It's used mouseover and not mousemove because I want this callback
+    function to be called for every child-most node hovered (a cell in this case). 
+    But, not for every single movement inside a cell
     */
-
-    if (!e.target.classList.contains('cell')) {
+   
+   if (!e.target.classList.contains('cell')) {
         /* For now all the space of the grid and of the rows is occupied by cells.
         So, the target should always be a cell.
         But, it's a security check just in case of future changes in which not
@@ -162,9 +224,14 @@ grid.addEventListener('mouseover', e => {
     }
 
     if (mouse_down && draw_walls) {
+        if (mousedown_target) {
+            mousedown_target.classList.add('wall');
+            mousedown_target = null;
+        }
         if (!e.target.classList.contains('target') &&
             !e.target.classList.contains('bfsroot')) {
             e.target.classList.add('wall');
+            update_history('wall', e.target.textContent);
         }
     }
 
@@ -199,10 +266,11 @@ grid.addEventListener('click', e => {
         - left button + move
         - click
     */
-    if (draw_walls) {
+    if (/*!mouse_down &&*/ draw_walls) {
         if (!e.target.classList.contains('target') &&
             !e.target.classList.contains('bfsroot')) {
             e.target.classList.add('wall');
+            update_history('wall', e.target.textContent);
         }
     }
     if (select_targets) {
@@ -211,6 +279,8 @@ grid.addEventListener('click', e => {
             // No need to check whether the class is already present.
             // In that case is simply omitted
             e.target.classList.add('target');
+            targets += 1;
+            update_history('target', e.target.textContent);
         }
     }
     if (select_bfs_root && !bfsroot_selected) {
@@ -220,30 +290,58 @@ grid.addEventListener('click', e => {
             bfsroot.classList.remove('bfsroot-hover');
             bfsroot.classList.add('bfsroot');
             bfsroot_selected = true;
+            run_btn.disabled = false;
+            select_bfs_root_btn.disabled = true;
+            update_history('bfsroot', e.target.textContent);
         }
     }
 });
 
+let freezed_q = null;
+let freezed_visited = null;
+let freezed_targets_found = 0;
+let freezed_steps = 0;
+
+function reset_freezed_data() {
+    freezed_q = null;
+    freezed_visited = null;
+    freezed_targets_found = 0;
+    freezed_steps = 0;
+}
+
 async function bfs() 
 {
-    const visited = new Set();
-    const q = [ bfsroot ];
-    let target_found = false;
-    let steps = 0;
+    const visited = freezed_visited === null ? new Set() : freezed_visited;
+    let q;
+    if (freezed_q !== null) q = freezed_q;
+    else q = [ bfsroot ];
+    // const q = [ bfsroot ]; // I can assume bfsroot != null
+    let targets_found = freezed_targets_found;
+    let steps = freezed_steps;
     while (q.length > 0) {
-        const curr = q.shift();
-        steps += 1;
-        if (curr.classList.contains('wall')) continue;
-        if (curr.classList.contains('target')) {
-            target_found = true;
+        if (bfs_freezed) {
+            freezed_q = q;
+            freezed_visited = visited;
+            freezed_targets_found = targets_found;
+            freezed_steps = steps;
             break;
         }
+        
+        if (targets > 0 && targets_found === targets) break;
+        
+        steps += 1;
+        const curr = q.shift();
+        if (curr.classList.contains('wall')) continue;
+
         const curr_x = Number(curr.textContent.split(',')[0]);
         const curr_y = Number(curr.textContent.split(',')[1]);
+        
         if (visited.has(curr_x + ',' + curr_y)) continue;
         visited.add(curr_x + ',' + curr_y);
         curr.classList.add('visited');
-        await new Promise(resolve => setTimeout(resolve, 20));
+        if (curr.classList.contains('target')) targets_found += 1;
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         if (curr_x > 0) q.push(grid.childNodes[curr_x - 1].childNodes[curr_y]);
         if (curr_y < grid.childNodes[curr_x].childNodes.length - 1) q.push(grid.childNodes[curr_x].childNodes[curr_y + 1]);
@@ -251,68 +349,69 @@ async function bfs()
         if (curr_y > 0) q.push(grid.childNodes[curr_x].childNodes[curr_y - 1]);
     }
 
-    document.querySelector('#target-found').textContent += target_found;
-    document.querySelector('#steps').textContent += steps;
-    document.querySelector('#cells-visited').textContent += visited.size;
+    /* terminated 'naturally' if q.length === 0 or 
+        (targets_found === targets && targets > 0) */
+    if (!bfs_freezed) {
+        update_res(targets > 0 && targets_found === targets, visited.size, steps);
+        // TODO reset freezed data
+    }
 }
 
 // grid could be a parameter
 async function dfs() 
 {
     const visited = new Set();
+    let targets_found = 0;
+    let steps = 0;
     const explore = async (x, y, visited) => {
+        if (targets > 0 && targets_found === targets) return;
+        steps += 1;
+        
         const x_in_bounds = 0 <= x && x < grid.childNodes.length;
         const y_in_bounds = 0 <= y && y < grid.childNodes[0].childNodes.length;
         if (!x_in_bounds || !y_in_bounds) return;
-        const curr = grid.childNodes[x].childNodes[y];
         
-        await new Promise(resolve => setTimeout(resolve, 20));
-
-        if (curr.classList.contains('target')) return;
+        const curr = grid.childNodes[x].childNodes[y];
         if (curr.classList.contains('wall')) return;
-
+        
         const pos = x + ',' + y;
         if (visited.has(pos)) return;
         visited.add(pos);
         curr.classList.add('visited');
+        if (curr.classList.contains('target')) targets_found += 1;
+
+        await new Promise(resolve => setTimeout(resolve, 20));
 
         await explore(x - 1, y, visited)
         await explore(x, y + 1, visited)
         await explore(x + 1, y, visited)
         await explore(x, y - 1, visited)
     }
-    await explore(bfsroot.textContent.split(',')[0], bfsroot.textContent.split(',')[1], visited);
+    await explore(Number(bfsroot.textContent.split(',')[0]), Number(bfsroot.textContent.split(',')[1]), visited);
+    
+    update_res(targets > 0 && targets_found === targets, visited.size, steps);
 }
 
-// async function explore(x, y, visited) {
-//     if (stop_bfs_execution) return;
-//     // console.log('entered function', ++i);
-//     const x_in_bounds = 0 <= x && x < grid.childNodes.length;
-//     const y_in_bounds = 0 <= y && y < grid.childNodes[0].childNodes.length;
-//     if (!x_in_bounds || !y_in_bounds) return;
+function update_res(target_found, cells_visited, steps) {
+    document.querySelector('#target-found').textContent = target_found;
+    document.querySelector('#cells-visited').textContent = cells_visited;
+    document.querySelector('#steps').textContent = steps;
+}
 
-//     const curr_cell = grid.childNodes[x].childNodes[y];
+function update_history(_class, coordinates) {
+    history_idx += 1;
+    history.push(_class + ',' + coordinates);
+    if (history_idx >= 0) {
+        undo_btn.disabled = false;
+        redo_btn.disabled = false;
+    }
+}
 
-//     // The waiting is just to let the user observe the algorithmic steps
-//     await sleep(1000);
-
-//     if (curr_cell.classList.contains('target')) return;
-//     if (curr_cell.classList.contains('wall')) return;
-
-//     const pos = x + ',' + y;
-//     if (visited.has(pos)) {
-//         // console.log('already visited: ', x, y);
-//         return;
-//     }
-
-//     visited.add(pos);
-//     curr_cell.classList.add('visited');
-
-//     explore(x - 1, y, visited)
-//     explore(x + 1, y, visited)
-//     explore(x, y - 1, visited)
-//     explore(x, y + 1, visited)
-//     return;
-// }
+undo_btn.addEventListener('click', () => {
+    let last_move = history[history_idx];
+    let info = last_move.split(',');
+    let _class = info[0], x = info[1], y = info[2];
+    grid.childNodes[x].childNodes[y].classList.remove(_class);
+});
 
 

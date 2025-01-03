@@ -5,6 +5,17 @@
     align-items: center;
     border: 2px solid brown;
     width: fit-content;
+
+    /* in each cell is shown its position.
+    While drawing the walls, you will also select the text and 
+    this is noisy */
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#err-msg {
+    color: rgb(150, 19, 19);
+    font-weight: bold;
 }
 
 .row {
@@ -12,10 +23,12 @@
 }
 
 .cell {
-    width: 2rem;
-    height: 2rem;
+    font-size: .75rem;
+    color: gray;
+    width: 5ch; /* it is proportional to the font-size */
+    padding: .25rem;
+    aspect-ratio: 1;
     border: 1px solid black;
-    font-size: .5rem;
 }
 
 .visited {
@@ -45,7 +58,7 @@
     background-color: rgb(192, 48, 48);
 }
 
-.btn-active {
+button:focus {
     border: 2px solid rgb(156, 16, 16);
 }
 
