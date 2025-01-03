@@ -81,10 +81,16 @@ document.addEventListener('mouseup', () => mouse_down = false);
  * Dashboard buttons
  */
 
-clear_btn.addEventListener('click', (e) => {
+clear_btn.addEventListener('click', (e) => 
+{
+    run_btn.textContent = 'run';
+    run_btn.disabled = true;
+    select_bfs_root_btn.disabled = false;
+
     f_select_targets = false;
     f_draw_walls = false;
 
+    bfsroot = null;
     grid.childNodes.forEach(row => {
         row.childNodes.forEach(cell => {
             cell.classList.remove('wall');
@@ -93,24 +99,24 @@ clear_btn.addEventListener('click', (e) => {
             cell.classList.remove('visited');
         }); 
     });
-    bfsroot = null;
-    f_select_bfs_root = true;
 });
 
-draw_walls_btn.addEventListener('click', (e) => {
+draw_walls_btn.addEventListener('click', () => 
+{
     f_select_targets = false;
     f_draw_walls = true;
 });
 
-select_targets_btn.addEventListener('click', (e) => {
+select_targets_btn.addEventListener('click', () => 
+{
     f_draw_walls = false;
     f_select_targets = true;
 });
 
-select_bfs_root_btn.addEventListener('click', e => {
+select_bfs_root_btn.addEventListener('click', () => 
+{
     f_draw_walls = false;
     f_select_targets = false;
-
     if (!bfsroot) f_select_bfs_root = true;
     else console.error('Error: select_bfs_root_btn: bfs root already selected.');
 });
@@ -120,19 +126,21 @@ run_btn.addEventListener('click', async e =>
 {
     if (!is_run) // is reset
     { 
-        reset_freezed_data();
+        run_btn.textContent = 'run';
+        stop_btn.textContent = 'stop';
+        stop_btn.disabled = true;
         grid.childNodes.forEach(row => {
             row.childNodes.forEach(cell => {
                 cell.classList.remove('visited');
             });
         });
-        is_run = true;
-        run_btn.textContent = 'run';
-        run_btn.disabled = false;
-        stop_btn.disabled = true;
-        stop_btn.textContent = 'stop';
+        draw_walls_btn.disabled = select_targets_btn.disabled =
+            clear_btn.disabled = false;
+
+        reset_freezed_data();
         bfs_freezed = false;
-        is_stop = !is_stop;
+        is_stop = true;
+        is_run = true;
     }
     else
     {
@@ -167,18 +175,11 @@ run_btn.addEventListener('click', async e =>
         });
         if (algo_name === 'bfs') await bfs();
         else if (algo_name === 'dfs') await dfs();
-        else {
-            /* 'wrong' is a really bad name for an algo
-            and can be confused with the fact that the algo
-            is actually wrong. */
-            console.log('wrong algo selected');
-        }
+        else console.error('Error: the algorithm specified is not valid.');
         
         if (!bfs_freezed) {
-            btns_container.childNodes.forEach(btn => {
-                stop_btn.disabled = true;
-                if (btn !== stop_btn) btn.disabled = false;
-            });
+            stop_btn.disabled = true;
+            clear_btn.disabled = run_btn.disabled = false;
         }
     }
 });
@@ -186,20 +187,19 @@ run_btn.addEventListener('click', async e =>
 let is_stop = true;
 stop_btn.addEventListener('click', async e => {
     if (is_stop) {
-        bfs_freezed = true;
         stop_btn.textContent = 'resume';
         run_btn.disabled = false;
-        is_stop = !is_stop;
+        bfs_freezed = true;
+        is_stop = false;
     } else {
-        run_btn.disabled = true;
         stop_btn.textContent = 'stop';
+        run_btn.disabled = true;
         /* what happens if I reach this exact point and 
         the user immediately clicks again? */
-        is_stop = !is_stop;
         bfs_freezed = false;
+        is_stop = true;
         await bfs();
     }
-    // btns_container.childNodes.forEach(btn => btn.disabled = false);
 });
 
 /*
