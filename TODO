@@ -1,0 +1,5 @@
+- bug to reproduce: position bfsroot and target next to each other,
+let the algo run, clean and then try again.
+- iterative dfs
+- should i disable radio buttons while the algo is running?
+- when a target is hit, make it bigger.

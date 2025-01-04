@@ -6,9 +6,8 @@
     border: 2px solid brown;
     width: fit-content;
 
-    /* in each cell is shown its position.
-    While drawing the walls, you will also select the text and 
-    this is noisy */
+    /* because in each cell is shown its position,
+    if, while drawing the walls, text is selected, it's noisy. */
     -webkit-user-select: none;
     user-select: none;
 }
@@ -49,8 +48,12 @@
     align-items: center;
 } */
 
-.target-hover {
+.wall-hover {
     /* I place the border inside to avoid moving the grid */
+    box-shadow: inset 0px 0px 0px 3px rgb(182, 45, 45);
+}
+
+.target-hover {
     box-shadow: inset 0px 0px 0px 3px rgb(240, 65, 185);
 }
 

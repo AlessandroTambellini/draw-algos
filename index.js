@@ -12,55 +12,56 @@ const clear_btn = document.querySelector('#clear-btn');
 const draw_walls_btn = document.querySelector('#draw-walls-btn');
 const select_targets_btn = document.querySelector('#select-targets-btn');
 const select_bfs_root_btn = document.querySelector('#select-bfs-root');
-//
+
 const run_btn = document.querySelector('#run-btn');
 const stop_btn = document.querySelector('#stop-btn');
-//
+
 const undo_btn = document.querySelector('#undo-btn');
 const redo_btn = document.querySelector('#redo-btn');
+
+const bfs_wrapper = bfs();
 
 const history_dim = 10;
 const history = new Array(history_dim);
 let history_idx = -1;
-
-let targets = 0;
 
 // 'f' stands for flag
 let f_draw_walls = false;
 let f_select_targets = false;
 let f_select_bfs_root = false;
 
-let mouse_down = false;
-
-let bfsroot = null;
-let bfs_freezed = false;
-
+let prev_wall_hover = null;
 let prev_target_hover = null;
 let prev_bfsroot_hover = null;
 
+let is_stop = true;
+// let is_run = true;
+
+let mouse_down = false;
+let mousedown_target = null;
+
+let bfsroot = null;
+let targets = 0;
+
 // 1) build the grid
-for (let i = 0; i < 20; i++) {
-    // 1.1) build the row
+for (let i = 0; i < 20; i++) 
+{
     const row = document.createElement('div');
     row.classList.add('row');
-    
-    for (let j = 0; j < 20; j++) {
-        // 1.2) build the cell
+
+    for (let j = 0; j < 20; j++) 
+    {
         const cell = document.createElement('div');
         cell.classList.add('cell');
         cell.textContent = i + ',' + j;
         row.appendChild(cell);
     }
-    
     grid.appendChild(row);
 }
 
-/*
-If I drag over the cells, the mouseup is not detected.
+/* If I drag over the cells, the mouseup is not detected.
 I guess that's because the drop event interferes with mouseup.
-So, I disable the dragging on the cells
-*/
-let mousedown_target = null;
+So, I disable the dragging on the cells */
 document.addEventListener('dragstart', e => e.preventDefault());
 document.addEventListener('mousedown', (e) => {
     // 0 is the left button
@@ -76,11 +77,6 @@ document.addEventListener('mousedown', (e) => {
 });
 document.addEventListener('mouseup', () => mouse_down = false);
 
-/**
- * 
- * Dashboard buttons
- */
-
 clear_btn.addEventListener('click', (e) => 
 {
     run_btn.textContent = 'run';
@@ -90,7 +86,6 @@ clear_btn.addEventListener('click', (e) =>
     f_select_targets = false;
     f_draw_walls = false;
 
-    bfsroot = null;
     grid.childNodes.forEach(row => {
         row.childNodes.forEach(cell => {
             cell.classList.remove('wall');
@@ -99,6 +94,11 @@ clear_btn.addEventListener('click', (e) =>
             cell.classList.remove('visited');
         }); 
     });
+    bfsroot = null;
+    targets = 0;
+
+    draw_walls_btn.disabled = false;
+    select_targets_btn.disabled = false;
 });
 
 draw_walls_btn.addEventListener('click', () => 
@@ -121,139 +121,163 @@ select_bfs_root_btn.addEventListener('click', () =>
     else console.error('Error: select_bfs_root_btn: bfs root already selected.');
 });
 
-let is_run = true;
-run_btn.addEventListener('click', async e => 
-{
-    if (!is_run) // is reset
-    { 
-        run_btn.textContent = 'run';
-        stop_btn.textContent = 'stop';
-        stop_btn.disabled = true;
-        grid.childNodes.forEach(row => {
-            row.childNodes.forEach(cell => {
-                cell.classList.remove('visited');
+/* run_btn_handler() is just an experiment
+to try using a closure to manage a local flag(s).
+The same is true for bfs_wrapper(). */
+function run_btn_handler() {
+    let is_run = true;
+    return async function() {
+        if (!is_run)
+        { 
+            run_btn.textContent = 'run';
+            stop_btn.textContent = 'stop';
+            stop_btn.disabled = true;
+            grid.childNodes.forEach(row => {
+                row.childNodes.forEach(cell => {
+                    cell.classList.remove('visited');
+                });
             });
-        });
-        draw_walls_btn.disabled = select_targets_btn.disabled =
-            clear_btn.disabled = false;
-
-        reset_freezed_data();
-        bfs_freezed = false;
-        is_stop = true;
-        is_run = true;
-    }
-    else
-    {
-        /* The only condition to run the algo,
-        is to have the bfsroot selected. 
-        The target is not needed because I may want to just visualize the 
-        algorithmic pattern. Same reason for walls. */
-        if (!bfsroot) {
-            document.querySelector('#err-msg').textContent = 'Error: no bfsroot selected.';
-            return;
+            draw_walls_btn.disabled = select_targets_btn.disabled =
+                clear_btn.disabled = false;
+    
+            bfs_wrapper('f_reset_data');
+            bfs_wrapper('f_unfreeze_bfs');
+            is_stop = true;
+            is_run = true;
         }
-
-        /* I want the UI change to be as fast as possible.
-        So, it is the first thing I do. */
-        run_btn.disabled = true;
-        run_btn.textContent = 'reset';
-
-        is_run = false;
-    
-        f_draw_walls = false;
-        f_select_targets = false;
-    
-        btns_container.childNodes.forEach(btn => btn.disabled = true);
-        stop_btn.disabled = false;
-        
-        let algo_name = 'bfs';
-        document.querySelectorAll('.algo').forEach(input => {
-            if (input.checked) {
-                algo_name = input.value;
+        else
+        {
+            /* The only condition necessary to run the algo,
+            is to have the bfsroot selected. 
+            The target is not needed because 
+            I may want to just visualize the algorithmic pattern. 
+            Same reason for walls are not needed. */
+            if (!bfsroot) {
+                document.querySelector('#err-msg').textContent = 'Error: no bfsroot selected.';
                 return;
             }
-        });
-        if (algo_name === 'bfs') await bfs();
-        else if (algo_name === 'dfs') await dfs();
-        else console.error('Error: the algorithm specified is not valid.');
+    
+            /* I want the UI change to be as fast as possible.
+            So, it is the first thing I do. */
+            run_btn.disabled = true;
+            run_btn.textContent = 'reset';
+    
+            is_run = false;
         
-        if (!bfs_freezed) {
-            stop_btn.disabled = true;
-            clear_btn.disabled = run_btn.disabled = false;
+            f_draw_walls = false;
+            f_select_targets = false;
+        
+            btns_container.childNodes.forEach(btn => btn.disabled = true);
+            stop_btn.disabled = false;
+            
+            let algo_name = 'bfs';
+            document.querySelectorAll('.algo').forEach(input => {
+                if (input.checked) {
+                    algo_name = input.value;
+                    return;
+                }
+            });
+            let res = null;
+            if (algo_name === 'bfs') {
+                res = await bfs_wrapper();
+            } else if (algo_name === 'dfs') await dfs();
+            else console.error('Error: the algorithm specified is not valid.');
+            
+            if (res) { // the algo terminated 'naturally'
+                stop_btn.disabled = true;
+                clear_btn.disabled = run_btn.disabled = false;
+            }
         }
     }
-});
+}
 
-let is_stop = true;
-stop_btn.addEventListener('click', async e => {
+run_btn.addEventListener('click', run_btn_handler());
+
+stop_btn.addEventListener('click', async () => {
     if (is_stop) {
         stop_btn.textContent = 'resume';
         run_btn.disabled = false;
-        bfs_freezed = true;
+        bfs_wrapper('f_freeze_bfs');
         is_stop = false;
     } else {
         stop_btn.textContent = 'stop';
         run_btn.disabled = true;
+        is_stop = true;
         /* what happens if I reach this exact point and 
         the user immediately clicks again? */
-        bfs_freezed = false;
-        is_stop = true;
-        await bfs();
+        bfs_wrapper('f_unfreeze_bfs');
+        await bfs_wrapper();
     }
 });
 
-/*
-    The mouseover event listener is added to the grid
-    and not to every single cell because I think it consumes less resources.
-    p.s. I do not know if the browser does some kind of optimization in this case. 
-*/
+/* 
+Note 1: the mouseover event listener is added to the grid
+and not to every single cell because I think it consumes less resources.
+p.s. I do not know if the browser does some kind of optimization in this case. 
+
+Note 2: before adding a class to an element,
+I do not check if the class is already present,
+because in that case the add() method simply does not do anything.*/
 grid.addEventListener('mouseover', e => {
-    /*
-    It's used mouseover and not mousemove because I want this callback
-    function to be called for every child-most node hovered (a cell in this case). 
-    But, not for every single movement inside a cell
-    */
+    /* It's used mouseover and not mousemove because 
+    I want this callback function to be called 
+    for every child-most node hovered (a cell in this case). 
+    But, not for every single movement inside a cell. */
    
-   if (!e.target.classList.contains('cell')) {
+    if (!e.target.classList.contains('cell')) {
         /* For now all the space of the grid and of the rows is occupied by cells.
         So, the target should always be a cell.
-        But, it's a security check just in case of future changes in which not
+        But, it's a expandability check just in case of future changes in which not
         all space is occupied by cells */
         return;
     }
 
-    if (mouse_down && f_draw_walls) {
-        if (mousedown_target) {
-            mousedown_target.classList.add('wall');
-            mousedown_target = null;
-        }
-        if (!e.target.classList.contains('target') &&
-            !e.target.classList.contains('bfsroot')) {
-            e.target.classList.add('wall');
-            update_history('wall', e.target.textContent);
+    const cell_classlist = e.target.classList;
+
+    if (f_draw_walls) {
+        if (!cell_classlist.contains('wall') &&
+            !cell_classlist.contains('target') &&
+            !cell_classlist.contains('bfsroot')) {
+            if (prev_wall_hover) prev_wall_hover.classList.remove('wall-hover');
+            cell_classlist.add('wall-hover');
+            prev_wall_hover = e.target;
         }
     }
 
-    if (f_select_targets) {
-        if (!e.target.classList.contains('wall') &&
-            !e.target.classList.contains('bfsroot')) {
+    // if (mouse_down && f_draw_walls) {
+    //     if (mousedown_target) {
+    //         mousedown_target.classList.add('wall');
+    //         mousedown_target = null;
+    //     }
+    //     if (!e.target.classList.contains('target') &&
+    //         !e.target.classList.contains('bfsroot')) {
+    //         e.target.classList.add('wall');
+    //         // update_history('wall', e.target.textContent);
+    //     }
+    // }
+
+    else if (f_select_targets) {
+        if (!cell_classlist.contains('wall') &&
+            !cell_classlist.contains('target') &&
+            !cell_classlist.contains('bfsroot')) {
             if (prev_target_hover) prev_target_hover.classList.remove('target-hover');
-            e.target.classList.add('target-hover');
+            cell_classlist.add('target-hover');
             prev_target_hover = e.target;
         }
     }
 
     if (f_select_bfs_root && !bfsroot) {
-        if (!e.target.classList.contains('wall') &&
-            !e.target.classList.contains('target')) {
+        if (!cell_classlist.contains('wall') &&
+            !cell_classlist.contains('target')) {
             if (prev_bfsroot_hover) prev_bfsroot_hover.classList.remove('bfsroot-hover');
-            e.target.classList.add('bfsroot-hover');
+            cell_classlist.add('bfsroot-hover');
             prev_bfsroot_hover = e.target;
         }
     }
 });
 
 grid.addEventListener('mouseleave', () => {
+    if (prev_wall_hover) prev_wall_hover.classList.remove('wall-hover');
     if (prev_target_hover) prev_target_hover.classList.remove('target-hover');
     if (prev_bfsroot_hover) prev_bfsroot_hover.classList.remove('bfsroot-hover');
 });
@@ -261,113 +285,124 @@ grid.addEventListener('mouseleave', () => {
 grid.addEventListener('click', e => {
     if (!e.target.classList.contains('cell')) return;
 
-    /* walls can be drawn in 2 ways:
-        - left button + move
-        - click
-    */
-    if (/*!mouse_down &&*/ f_draw_walls) {
-        if (!e.target.classList.contains('target') &&
-            !e.target.classList.contains('bfsroot')) {
-            e.target.classList.add('wall');
-            update_history('wall', e.target.textContent);
+    const cell_classlist = e.target.classList;
+    if (f_draw_walls) {
+        if (!cell_classlist.contains('target') && 
+        !cell_classlist.contains('bfsroot')) {
+            cell_classlist.add('wall');
+            cell_classlist.remove('wall-hover');
+            // update_history('wall', e.target.textContent);
         }
     }
-    if (f_select_targets) {
-        if (!e.target.classList.contains('wall') &&
-            !e.target.classList.contains('bfsroot')) {
-            // No need to check whether the class is already present.
-            // In that case is simply omitted
-            e.target.classList.add('target');
+    else if (f_select_targets) {
+        if (!cell_classlist.contains('wall') &&
+        !cell_classlist.contains('bfsroot')) {
+            cell_classlist.add('target');
+            cell_classlist.remove('target-hover');
             targets += 1;
-            update_history('target', e.target.textContent);
+            // update_history('target', e.target.textContent);
         }
     }
-    if (f_select_bfs_root && !bfsroot) {
-        if (!e.target.classList.contains('wall') &&
-            !e.target.classList.contains('target')) {
+    else if (f_select_bfs_root && !bfsroot) {
+        if (!cell_classlist.contains('wall') &&
+        !cell_classlist.contains('target')) {
+            cell_classlist.add('bfsroot');
+            cell_classlist.remove('bfsroot-hover');
             bfsroot = e.target;
-            bfsroot.classList.remove('bfsroot-hover');
-            bfsroot.classList.add('bfsroot');
             run_btn.disabled = false;
             select_bfs_root_btn.disabled = true;
-            update_history('bfsroot', e.target.textContent);
+            // update_history('bfsroot', e.target.textContent);
 
             /* as soon as the bfsroot is selected, 
             I set the flag to false because no other roots
-            can be selected. */
+            can be selected. It's unique (at least for now) */
             f_select_bfs_root = false;
         }
     }
 });
 
-let freezed_q = null;
-let freezed_visited = null;
-let freezed_targets_found = 0;
-let freezed_steps = 0;
+function bfs() {
+    let freezed_q = null;
+    let freezed_visited = null;
+    let freezed_targets_found = 0;
+    let freezed_steps = 0;
+    let bfs_freezed = false;
+    return async function(f) {
+        if ('f_freeze_bfs' === f) {
+            bfs_freezed = true;
+            return;
+        }
 
-function reset_freezed_data() {
-    freezed_q = null;
-    freezed_visited = null;
-    freezed_targets_found = 0;
-    freezed_steps = 0;
-}
-
-async function bfs() 
-{
-    if (!bfsroot) {
-        /* I want the algos API to be independent from the UI 
-        (more precisely, the HTML). So, I do not assume the bfsroot
-        to be defined when bfs() is called, even though it cannot
-        happen by 'following the UI'.
-        If, for instance, I enter the inspection panel of the browser 
-        and I remove the disabled attribute from the stop button,
-        I can click 2 times on this last button to call
-        bfs() without bfsroot being defined. */
-        console.error('Error: no bfsroot selected.');
-        return;
-    }
-
-    const visited = freezed_visited === null ? new Set() : freezed_visited;
-    const q = freezed_q !== null ? freezed_q : [ bfsroot ];
-    let targets_found = freezed_targets_found;
-    let steps = freezed_steps;
-    while (q.length > 0) 
-    {
-        if (bfs_freezed) {
-            freezed_q = q;
-            freezed_visited = visited;
-            freezed_targets_found = targets_found;
-            freezed_steps = steps;
-            break;
+        if ('f_unfreeze_bfs' === f) {
+            bfs_freezed = false;
+            return;
         }
         
-        if (targets > 0 && targets_found === targets) break;
-        
-        steps += 1;
-        const curr = q.shift();
-        if (curr.classList.contains('wall')) continue;
+        if ('f_reset_data' === f) {
+            freezed_q = null;
+            freezed_visited = null;
+            freezed_targets_found = 0;
+            freezed_steps = 0;
+            return;
+        }
 
-        const curr_x = Number(curr.textContent.split(',')[0]);
-        const curr_y = Number(curr.textContent.split(',')[1]);
+        if (!bfsroot) {
+            /* I want the algos API to be independent from the UI 
+            (more precisely, the HTML). So, I do not assume the bfsroot
+            to be defined when bfs() is called, even though it cannot
+            happen by 'following the UI'.
+            If, for instance, I enter the inspection panel of the browser 
+            and I remove the disabled attribute from the stop button,
+            I can click 2 times on this last button to call
+            bfs() without bfsroot being defined. */
+            console.error('Error: no bfsroot selected.');
+            return;
+        }
         
-        if (visited.has(curr_x + ',' + curr_y)) continue;
-        visited.add(curr_x + ',' + curr_y);
-        curr.classList.add('visited');
-        if (curr.classList.contains('target')) targets_found += 1;
+        // Actual bfs algorithm
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        if (curr_x > 0) q.push(grid.childNodes[curr_x - 1].childNodes[curr_y]);
-        if (curr_y < grid.childNodes[curr_x].childNodes.length - 1) q.push(grid.childNodes[curr_x].childNodes[curr_y + 1]);
-        if (curr_x < grid.childNodes.length - 1) q.push(grid.childNodes[curr_x + 1].childNodes[curr_y]);
-        if (curr_y > 0) q.push(grid.childNodes[curr_x].childNodes[curr_y - 1]);
-    }
-
-    /* terminated 'naturally' if q.length === 0 or 
+        const visited = freezed_visited ? freezed_visited : new Set();
+        const q = freezed_q ? freezed_q : [ bfsroot ];
+        let targets_found = freezed_targets_found;
+        let steps = freezed_steps;
+        while (q.length > 0) 
+        {
+            if (bfs_freezed) {
+                freezed_q = q;
+                freezed_visited = visited;
+                freezed_targets_found = targets_found;
+                freezed_steps = steps;
+                break;
+            }
+            
+            if (targets > 0 && targets_found === targets) break;
+            
+            steps += 1;
+            const curr = q.shift();
+            if (curr.classList.contains('wall')) continue;
+    
+            const curr_x = Number(curr.textContent.split(',')[0]);
+            const curr_y = Number(curr.textContent.split(',')[1]);
+            
+            if (visited.has(curr_x + ',' + curr_y)) continue;
+            visited.add(curr_x + ',' + curr_y);
+            curr.classList.add('visited');
+            if (curr.classList.contains('target')) targets_found += 1;
+    
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            if (curr_x > 0) q.push(grid.childNodes[curr_x - 1].childNodes[curr_y]);
+            if (curr_y < grid.childNodes[curr_x].childNodes.length - 1) q.push(grid.childNodes[curr_x].childNodes[curr_y + 1]);
+            if (curr_x < grid.childNodes.length - 1) q.push(grid.childNodes[curr_x + 1].childNodes[curr_y]);
+            if (curr_y > 0) q.push(grid.childNodes[curr_x].childNodes[curr_y - 1]);
+        }
+    
+        /* terminates 'naturally' if q.length === 0 or 
         (targets_found === targets && targets > 0) */
-    if (!bfs_freezed) {
-        update_res(targets > 0 && targets_found === targets, visited.size, steps);
-        // TODO reset freezed data
+        if (!bfs_freezed) {
+            update_res(targets > 0 && targets_found === targets, visited.size, steps);
+            return true;
+        }
     }
 }
 
