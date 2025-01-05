@@ -86,12 +86,14 @@ class Bfs {
             steps += 1;
             const curr = ds.shift();
             if (curr.classList.contains('wall')) continue;
-    
+            
             if (visited.has(curr.textContent)) continue;
             visited.add(curr.textContent);
             curr.classList.add('visited');
-            if (curr.classList.contains('target')) targets_found += 1;
-            
+            if (curr.classList.contains('target')) {
+                targets_found += 1;
+                curr.classList.add('target-found');
+            }
             await new Promise(resolve => setTimeout(resolve, this.step_pause));
             
             const x = Number(curr.textContent.split(',')[0]);
@@ -165,8 +167,10 @@ class Dfs {
             if (visited.has(curr.textContent)) continue;
             visited.add(curr.textContent);
             curr.classList.add('visited');
-            if (curr.classList.contains('target')) targets_found += 1;
-            
+            if (curr.classList.contains('target')) {
+                targets_found += 1;
+                curr.classList.add('target-found');
+            }
             await new Promise(resolve => setTimeout(resolve, this.step_pause));
             
             const x = Number(curr.textContent.split(',')[0]);
@@ -262,6 +266,7 @@ clear_btn.addEventListener('click', (e) =>
             cell.classList.remove('target');
             cell.classList.remove('root');
             cell.classList.remove('visited');
+            cell.classList.remove('target-found');
         }); 
     });
     root = null;
@@ -304,6 +309,7 @@ function run_btn_handler() {
             grid.childNodes.forEach(row => {
                 row.childNodes.forEach(cell => {
                     cell.classList.remove('visited');
+                    cell.classList.remove('target-found');
                 });
             });
             draw_walls_btn.disabled = select_targets_btn.disabled =
