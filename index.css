@@ -57,7 +57,7 @@
     box-shadow: inset 0px 0px 0px 3px rgb(240, 65, 185);
 }
 
-.bfsroot-hover {
+.root-hover {
     box-shadow: inset 0px 0px 0px 3px rgb(60, 226, 238);
 }
 
@@ -70,7 +70,7 @@ button:focus {
     border: 2px solid rgb(156, 16, 16);
 }
 
-.bfsroot {
+.root {
     background-color: rgb(0, 140, 255);
     color: rgb(215, 215, 215);
 }
