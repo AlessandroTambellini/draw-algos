@@ -1,50 +1,58 @@
 /*
-    TODO 28/12:
-    How to manage the virtual grid,
-    when to push changes to the real one,
-    how to retrieve info from the real one, 
-*/
-
+ * 
+ * HTML elements
+ */
 const grid = document.querySelector('#grid');
-const btns_container = document.querySelector('#btns-container');
 
+const btns_container = document.querySelector('#btns-container');
 const clear_btn = document.querySelector('#clear-btn');
 const draw_walls_btn = document.querySelector('#draw-walls-btn');
 const select_targets_btn = document.querySelector('#select-targets-btn');
 const select_bfs_root_btn = document.querySelector('#select-root');
-
 const run_btn = document.querySelector('#run-btn');
 const stop_btn = document.querySelector('#stop-btn');
-
 const undo_btn = document.querySelector('#undo-btn');
 const redo_btn = document.querySelector('#redo-btn');
 
-function Bfs() {
-    let freezed_ds = null;
-    let freezed_visited = null;
-    let freezed_targets_found = 0;
-    let freezed_steps = 0;
-    let f_freeze = false;
+const step_pause_input = document.querySelector('#step-pause');
 
-    return async function(f) {
-        if ('f_freeze' === f) {
-            f_freeze = true;
-            return;
-        }
+const res_target_found = document.querySelector('#target-found');
+const res_cells_visited = document.querySelector('#cells-visited');
+const res_steps = document.querySelector('#steps');
 
-        if ('f_unfreeze' === f) {
-            f_freeze = false;
-            return;
-        }
-        
-        if ('f_reset_data' === f) {
-            freezed_ds = null;
-            freezed_visited = null;
-            freezed_targets_found = 0;
-            freezed_steps = 0;
-            return;
-        }
+/*
+* 
+* Algorithms
+*/
+const BFS = 0;
+const DFS = 1;
+const WHATEVER = 2;
 
+class Bfs {
+    // ds stands for data structure
+    freezed_ds = null;
+    freezed_visited = null;
+    freezed_targets_found = 0;
+    freezed_steps = 0;
+    f_freeze = false;
+    step_pause = 0;
+
+    set_f_freeze(state) {
+        this.f_freeze = state;
+    }
+
+    set_step_pause(step_pause) {
+        this.step_pause = step_pause;
+    }
+    
+    reset_data() {
+        this.freezed_ds = null;
+        this.freezed_visited = null;
+        this.freezed_targets_found = 0;
+        this.freezed_steps = 0;
+    }
+
+    async run() {
         if (!root) {
             /* I want the algos API to be independent from the UI 
             (more precisely, the HTML). So, I do not assume the root
@@ -55,29 +63,28 @@ function Bfs() {
             I can click 2 times on this last button to call
             bfs() without root being defined. */
             console.error('Error: no root selected.');
-            return;
+            return 0;
         }
         
-        // Actual bfs algorithm
-
-        const visited = freezed_visited ? freezed_visited : new Set();
-        const q = freezed_ds ? freezed_ds : [ root ];
-        let targets_found = freezed_targets_found;
-        let steps = freezed_steps;
-        while (q.length > 0) 
+        const visited = this.freezed_visited ? this.freezed_visited : new Set();
+        // It's a queue, but I call it ds for every algorithm
+        const ds = this.freezed_ds ? this.freezed_ds : [ root ];
+        let targets_found = this.freezed_targets_found;
+        let steps = this.freezed_steps;
+        while (ds.length > 0) 
         {
-            if (f_freeze) {
-                freezed_ds = q;
-                freezed_visited = visited;
-                freezed_targets_found = targets_found;
-                freezed_steps = steps;
+            if (this.f_freeze) {
+                this.freezed_ds = ds;
+                this.freezed_visited = visited;
+                this.freezed_targets_found = targets_found;
+                this.freezed_steps = steps;
                 break;
             }
             
             if (targets > 0 && targets_found === targets) break;
             
             steps += 1;
-            const curr = q.shift();
+            const curr = ds.shift();
             if (curr.classList.contains('wall')) continue;
     
             if (visited.has(curr.textContent)) continue;
@@ -85,36 +92,41 @@ function Bfs() {
             curr.classList.add('visited');
             if (curr.classList.contains('target')) targets_found += 1;
             
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, this.step_pause));
             
             const x = Number(curr.textContent.split(',')[0]);
             const y = Number(curr.textContent.split(',')[1]);
             
-            if (x > 0) q.push(grid.childNodes[x - 1].childNodes[y]);
-            if (y < grid.childNodes[x].childNodes.length - 1) q.push(grid.childNodes[x].childNodes[y + 1]);
-            if (x < grid.childNodes.length - 1) q.push(grid.childNodes[x + 1].childNodes[y]);
-            if (y > 0) q.push(grid.childNodes[x].childNodes[y - 1]);
+            if (x > 0) ds.push(grid.childNodes[x - 1].childNodes[y]);
+            if (y < grid.childNodes[x].childNodes.length - 1) ds.push(grid.childNodes[x].childNodes[y + 1]);
+            if (x < grid.childNodes.length - 1) ds.push(grid.childNodes[x + 1].childNodes[y]);
+            if (y > 0) ds.push(grid.childNodes[x].childNodes[y - 1]);
         }
         
-        /* terminates 'naturally' if q.length === 0 or 
-        (targets_found === targets && targets > 0) */
-        if (!f_freeze) {
+        /* if the algo terminated without being freezed */
+        if (!this.f_freeze) {
             update_res(targets > 0 && targets_found === targets, visited.size, steps);
-            return true;
+            return 1;
+        } else {
+            return 0;
         }
     }
 }
 
 class Dfs {
-    // ds stands for data structure
     freezed_ds = null;
     freezed_visited = null;
     freezed_targets_found = 0;
     freezed_steps = 0;
     f_freeze = false;
+    step_pause = 0;
     
     set_f_freeze(state) {
         this.f_freeze = state;
+    }
+
+    set_step_pause(step_pause) {
+        this.step_pause = step_pause;
     }
     
     reset_data() {
@@ -124,21 +136,23 @@ class Dfs {
         this.freezed_steps = 0;
     }
 
-    /* The only differences between bfs and dfs are which element
-    is removed from the array on each iteration and the order
-    in which cells are pushed into the array. */
+    /* There are only 2 differences between bfs and dfs:
+    - which element is removed from the array on each iteration
+    (first or last)
+    - the order in which cells are pushed to the array
+    to have the order top, right, bottom, left */
     async run() {
         if (!root) {
             console.error('Error: dfs: no root defined.');
-            return;
+            return 0;
         }
-        const s = [ root ];
-        const visited = new Set();
-        let targets_found = 0;
-        let steps = 0;
-        while (s.length > 0) {
+        const visited = this.freezed_visited ? this.freezed_visited : new Set();
+        const ds = this.freezed_ds ? this.freezed_ds : [ root ];
+        let targets_found = this.freezed_targets_found;
+        let steps = this.freezed_steps;
+        while (ds.length > 0) {
             if (this.f_freeze) {
-                this.freezed_ds = q;
+                this.freezed_ds = ds;
                 this.freezed_visited = visited;
                 this.freezed_targets_found = targets_found;
                 this.freezed_steps = steps;
@@ -146,34 +160,39 @@ class Dfs {
             }
             if (targets > 0 && targets_found === targets) break;
             steps += 1;
-            const curr = s.pop();
+            const curr = ds.pop();
             if (curr.classList.contains('wall')) continue;
             if (visited.has(curr.textContent)) continue;
             visited.add(curr.textContent);
             curr.classList.add('visited');
             if (curr.classList.contains('target')) targets_found += 1;
             
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, this.step_pause));
             
             const x = Number(curr.textContent.split(',')[0]);
             const y = Number(curr.textContent.split(',')[1]);
             
-            if (y > 0) s.push(grid.childNodes[x].childNodes[y - 1]);
-            if (x < grid.childNodes.length - 1) s.push(grid.childNodes[x + 1].childNodes[y]);
-            if (y < grid.childNodes[x].childNodes.length - 1) s.push(grid.childNodes[x].childNodes[y + 1]);
-            if (x > 0) s.push(grid.childNodes[x - 1].childNodes[y]);
+            if (y > 0) ds.push(grid.childNodes[x].childNodes[y - 1]);
+            if (x < grid.childNodes.length - 1) ds.push(grid.childNodes[x + 1].childNodes[y]);
+            if (y < grid.childNodes[x].childNodes.length - 1) ds.push(grid.childNodes[x].childNodes[y + 1]);
+            if (x > 0) ds.push(grid.childNodes[x - 1].childNodes[y]);
         }
         if (!this.f_freeze) {
             update_res(targets > 0 && targets_found === targets, visited.size, steps);
-            return true;
+            return 1;
+        } else {
+            return 0;
         }
     }
 }
 
-const bfs = Bfs();      // Clojure
-const dfs = new Dfs();  // Class
+class Whatever {
 
-let algo_selected = null;
+}
+
+let algo = null;
+let root = null;
+let targets = 0;
 
 const history_dim = 10;
 const history = new Array(history_dim);
@@ -182,7 +201,7 @@ let history_idx = -1;
 // 'f' stands for flag
 let f_draw_walls = false;
 let f_select_targets = false;
-let f_select_bfs_root = false;
+let f_select_root = false;
 
 let prev_wall_hover = null;
 let prev_target_hover = null;
@@ -193,9 +212,6 @@ let is_stop = true;
 
 let mouse_down = false;
 let mousedown_target = null;
-
-let root = null;
-let targets = 0;
 
 // 1) build the grid
 for (let i = 0; i < 20; i++) 
@@ -271,13 +287,12 @@ select_bfs_root_btn.addEventListener('click', () =>
 {
     f_draw_walls = false;
     f_select_targets = false;
-    if (!root) f_select_bfs_root = true;
+    if (!root) f_select_root = true;
     else console.error('Error: select_bfs_root_btn: bfs root already selected.');
 });
 
 /* run_btn_handler() is just an experiment
-to try using a closure to manage a local flag(s).
-The same is true for bfs(). */
+to try using a closure to manage a local flag(s). */
 function run_btn_handler() {
     let is_run = true;
     return async function() {
@@ -293,14 +308,9 @@ function run_btn_handler() {
             });
             draw_walls_btn.disabled = select_targets_btn.disabled =
                 clear_btn.disabled = false;
-    
-            if (algo_selected === 'bfs') {
-                bfs('f_reset_data');
-                bfs('f_unfreeze');
-            } else if (algo_selected === 'dfs') {
-                dfs.reset_data();
-                dfs.set_f_freeze(false);
-            }
+
+            algo.reset_data();
+            algo.set_f_freeze(false);
 
             is_stop = true;
             is_run = true;
@@ -330,15 +340,29 @@ function run_btn_handler() {
             btns_container.childNodes.forEach(btn => btn.disabled = true);
             stop_btn.disabled = false;
             
+            let choosen_algo = -1;
             document.querySelectorAll('.algo').forEach(input => {
-                if (input.checked) algo_selected = input.value;
+                if (input.checked) choosen_algo = Number(input.value);
             });
-            let res = null;
-            if (algo_selected === 'bfs') res = await bfs();
-            else if (algo_selected === 'dfs') res = await dfs.run();
-            else console.error('Error: the algorithm specified is not valid.');
-            
-            if (res) { // the algo terminated 'naturally'
+            const step_pause = step_pause_input.value;
+
+            switch (choosen_algo) {
+                case BFS:
+                    algo = new Bfs();
+                    break;
+                case DFS:
+                    algo = new Dfs();
+                    break;
+                // case WHATEVER:
+                //     algo = new Whatever();
+                //     break;
+                default:
+                    console.error('Error: the algorithm specified is not valid.');
+                    break;
+            }
+            algo.set_step_pause(step_pause);
+            const res = await algo.run();
+            if (res) {
                 stop_btn.disabled = true;
                 clear_btn.disabled = run_btn.disabled = false;
             }
@@ -352,11 +376,7 @@ stop_btn.addEventListener('click', async () => {
     if (is_stop) {
         stop_btn.textContent = 'resume';
         run_btn.disabled = false;
-        if (algo_selected === 'bfs') {
-            bfs('f_freeze');
-        } else if (algo_selected === 'dfs') {
-            dfs.set_f_freeze(true);
-        }
+        algo.set_f_freeze(true);
         is_stop = false;
     } else {
         stop_btn.textContent = 'stop';
@@ -364,13 +384,8 @@ stop_btn.addEventListener('click', async () => {
         is_stop = true;
         /* what happens if I reach this exact point and 
         the user immediately clicks again? */
-        if (algo_selected === 'bfs') {
-            bfs('f_unfreeze');
-            await bfs();
-        } else if (algo_selected === 'dfs') {
-            dfs.set_f_freeze(false);
-            await dfs.run();
-        }
+        algo.set_f_freeze(false);
+        await algo.run();
     }
 });
 
@@ -397,7 +412,6 @@ grid.addEventListener('mouseover', e => {
     }
 
     const cell_classlist = e.target.classList;
-
     if (f_draw_walls) {
         if (!cell_classlist.contains('wall') &&
             !cell_classlist.contains('target') &&
@@ -430,7 +444,7 @@ grid.addEventListener('mouseover', e => {
         }
     }
 
-    if (f_select_bfs_root && !root) {
+    if (f_select_root && !root) {
         if (!cell_classlist.contains('wall') &&
             !cell_classlist.contains('target')) {
             if (prev_root_hover) prev_root_hover.classList.remove('root-hover');
@@ -467,7 +481,7 @@ grid.addEventListener('click', e => {
             // update_history('target', e.target.textContent);
         }
     }
-    else if (f_select_bfs_root && !root) {
+    else if (f_select_root && !root) {
         if (!cell_classlist.contains('wall') &&
         !cell_classlist.contains('target')) {
             cell_classlist.add('root');
@@ -480,15 +494,15 @@ grid.addEventListener('click', e => {
             /* as soon as the root is selected, 
             I set the flag to false because no other roots
             can be selected. It's unique (at least for now) */
-            f_select_bfs_root = false;
+            f_select_root = false;
         }
     }
 });
 
 function update_res(target_found, cells_visited, steps) {
-    document.querySelector('#target-found').textContent = target_found;
-    document.querySelector('#cells-visited').textContent = cells_visited;
-    document.querySelector('#steps').textContent = steps;
+    res_target_found.textContent = target_found;
+    res_cells_visited.textContent = cells_visited;
+    res_steps.textContent = steps;
 }
 
 // function update_history(_class, coordinates) {
