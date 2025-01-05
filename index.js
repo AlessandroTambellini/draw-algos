@@ -30,26 +30,26 @@ const WHATEVER = 2;
 
 class Bfs {
     // ds stands for data structure
-    freezed_ds = null;
-    freezed_visited = null;
-    freezed_targets_found = 0;
-    freezed_steps = 0;
-    f_freeze = false;
-    step_pause = 0;
+    #freezed_ds = null;
+    #freezed_visited = null;
+    #freezed_targets_found = 0;
+    #freezed_steps = 0;
+    #f_freeze = false;
+    #step_pause = 0;
 
     set_f_freeze(state) {
-        this.f_freeze = state;
+        this.#f_freeze = state;
     }
 
     set_step_pause(step_pause) {
-        this.step_pause = step_pause;
+        this.#step_pause = step_pause;
     }
     
     reset_data() {
-        this.freezed_ds = null;
-        this.freezed_visited = null;
-        this.freezed_targets_found = 0;
-        this.freezed_steps = 0;
+        this.#freezed_ds = null;
+        this.#freezed_visited = null;
+        this.#freezed_targets_found = 0;
+        this.#freezed_steps = 0;
     }
 
     async run() {
@@ -66,18 +66,18 @@ class Bfs {
             return 0;
         }
         
-        const visited = this.freezed_visited ? this.freezed_visited : new Set();
+        const visited = this.#freezed_visited ? this.#freezed_visited : new Set();
         // It's a queue, but I call it ds for every algorithm
-        const ds = this.freezed_ds ? this.freezed_ds : [ root ];
-        let targets_found = this.freezed_targets_found;
-        let steps = this.freezed_steps;
+        const ds = this.#freezed_ds ? this.#freezed_ds : [ root ];
+        let targets_found = this.#freezed_targets_found;
+        let steps = this.#freezed_steps;
         while (ds.length > 0) 
         {
-            if (this.f_freeze) {
-                this.freezed_ds = ds;
-                this.freezed_visited = visited;
-                this.freezed_targets_found = targets_found;
-                this.freezed_steps = steps;
+            if (this.#f_freeze) {
+                this.#freezed_ds = ds;
+                this.#freezed_visited = visited;
+                this.#freezed_targets_found = targets_found;
+                this.#freezed_steps = steps;
                 break;
             }
             
@@ -94,7 +94,7 @@ class Bfs {
                 targets_found += 1;
                 curr.classList.add('target-found');
             }
-            await new Promise(resolve => setTimeout(resolve, this.step_pause));
+            await new Promise(resolve => setTimeout(resolve, this.#step_pause));
             
             const x = Number(curr.textContent.split(',')[0]);
             const y = Number(curr.textContent.split(',')[1]);
@@ -106,7 +106,7 @@ class Bfs {
         }
         
         /* if the algo terminated without being freezed */
-        if (!this.f_freeze) {
+        if (!this.#f_freeze) {
             update_res(targets > 0 && targets_found === targets, visited.size, steps);
             return 1;
         } else {
@@ -116,26 +116,26 @@ class Bfs {
 }
 
 class Dfs {
-    freezed_ds = null;
-    freezed_visited = null;
-    freezed_targets_found = 0;
-    freezed_steps = 0;
-    f_freeze = false;
-    step_pause = 0;
+    #freezed_ds = null;
+    #freezed_visited = null;
+    #freezed_targets_found = 0;
+    #freezed_steps = 0;
+    #f_freeze = false;
+    #step_pause = 0;
     
     set_f_freeze(state) {
-        this.f_freeze = state;
+        this.#f_freeze = state;
     }
 
     set_step_pause(step_pause) {
-        this.step_pause = step_pause;
+        this.#step_pause = step_pause;
     }
     
     reset_data() {
-        this.freezed_ds = null;
-        this.freezed_visited = null;
-        this.freezed_targets_found = 0;
-        this.freezed_steps = 0;
+        this.#freezed_ds = null;
+        this.#freezed_visited = null;
+        this.#freezed_targets_found = 0;
+        this.#freezed_steps = 0;
     }
 
     /* There are only 2 differences between bfs and dfs:
@@ -148,16 +148,16 @@ class Dfs {
             console.error('Error: dfs: no root defined.');
             return 0;
         }
-        const visited = this.freezed_visited ? this.freezed_visited : new Set();
-        const ds = this.freezed_ds ? this.freezed_ds : [ root ];
-        let targets_found = this.freezed_targets_found;
-        let steps = this.freezed_steps;
+        const visited = this.#freezed_visited ? this.#freezed_visited : new Set();
+        const ds = this.#freezed_ds ? this.#freezed_ds : [ root ];
+        let targets_found = this.#freezed_targets_found;
+        let steps = this.#freezed_steps;
         while (ds.length > 0) {
-            if (this.f_freeze) {
-                this.freezed_ds = ds;
-                this.freezed_visited = visited;
-                this.freezed_targets_found = targets_found;
-                this.freezed_steps = steps;
+            if (this.#f_freeze) {
+                this.#freezed_ds = ds;
+                this.#freezed_visited = visited;
+                this.#freezed_targets_found = targets_found;
+                this.#freezed_steps = steps;
                 break;
             }
             if (targets > 0 && targets_found === targets) break;
@@ -171,7 +171,7 @@ class Dfs {
                 targets_found += 1;
                 curr.classList.add('target-found');
             }
-            await new Promise(resolve => setTimeout(resolve, this.step_pause));
+            await new Promise(resolve => setTimeout(resolve, this.#step_pause));
             
             const x = Number(curr.textContent.split(',')[0]);
             const y = Number(curr.textContent.split(',')[1]);
@@ -181,7 +181,7 @@ class Dfs {
             if (y < grid.childNodes[x].childNodes.length - 1) ds.push(grid.childNodes[x].childNodes[y + 1]);
             if (x > 0) ds.push(grid.childNodes[x - 1].childNodes[y]);
         }
-        if (!this.f_freeze) {
+        if (!this.#f_freeze) {
             update_res(targets > 0 && targets_found === targets, visited.size, steps);
             return 1;
         } else {
@@ -237,7 +237,7 @@ for (let i = 0; i < 20; i++)
 I guess that's because the drop event interferes with mouseup.
 So, I disable the dragging on the cells */
 document.addEventListener('dragstart', e => e.preventDefault());
-document.addEventListener('mousedown', (e) => {
+document.addEventListener('mousedown', e => {
     // 0 is the left button
     if (e.button === 0) {
         mouse_down = true;
@@ -251,7 +251,7 @@ document.addEventListener('mousedown', (e) => {
 });
 document.addEventListener('mouseup', () => mouse_down = false);
 
-clear_btn.addEventListener('click', (e) => 
+clear_btn.addEventListener('click', () => 
 {
     run_btn.textContent = 'run';
     run_btn.disabled = true;
@@ -480,9 +480,10 @@ grid.addEventListener('click', e => {
     }
     else if (f_select_targets) {
         if (!cell_classlist.contains('wall') &&
-        !cell_classlist.contains('root')) {
-            cell_classlist.add('target');
+        !cell_classlist.contains('root') &&
+        !cell_classlist.contains('target')) {
             cell_classlist.remove('target-hover');
+            cell_classlist.add('target');
             targets += 1;
             // update_history('target', e.target.textContent);
         }
