@@ -1,3 +1,6 @@
 - responsive grid and organization of the divs --> mobile first
 - is history a good feature to add?
 - implement semaphore for lock/unlock of actions?
+- some better logging
+- choose the size of the grid
+- put some default maze

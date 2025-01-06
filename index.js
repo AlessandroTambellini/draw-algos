@@ -1,18 +1,18 @@
 /*
  * 
- * HTML elements
+ *  HTML elements
  */
+
 const grid = document.querySelector('#grid');
 
 const btns_container = document.querySelector('#btns-container');
 const clear_btn = document.querySelector('#clear-btn');
+const rubber_btn = document.querySelector('#rubber-btn');
 const draw_walls_btn = document.querySelector('#draw-walls-btn');
 const select_targets_btn = document.querySelector('#select-targets-btn');
-const select_bfs_root_btn = document.querySelector('#select-root');
+const select_root_btn = document.querySelector('#select-root');
 const run_btn = document.querySelector('#run-btn');
 const stop_btn = document.querySelector('#stop-btn');
-const undo_btn = document.querySelector('#undo-btn');
-const redo_btn = document.querySelector('#redo-btn');
 
 const step_pause_input = document.querySelector('#step-pause');
 document.querySelector('form').addEventListener('submit', e => e.preventDefault());
@@ -23,8 +23,9 @@ const res_steps = document.querySelector('#steps');
 
 /*
 * 
-* Algorithms
+*   Algorithms
 */
+
 const BFS = 0;
 const DFS = 1;
 const WHATEVER = 2;
@@ -195,19 +196,22 @@ class Whatever {
 
 }
 
+/*
+ * 
+ *  Global vars/flags 
+ */
+
 let algo = null;
 let root = null;
 let targets = 0;
 
-const history_dim = 10;
-const history = new Array(history_dim);
-let history_idx = -1;
-
 // 'f' stands for flag
+let f_rubber = false;
 let f_draw_walls = false;
 let f_select_targets = false;
 let f_select_root = false;
 
+let prev_rubber_hover = null;
 let prev_wall_hover = null;
 let prev_target_hover = null;
 let prev_root_hover = null;
@@ -217,7 +221,11 @@ let is_stop = true;
 
 let leftBtn_down = false;
 
-// 1) build the grid
+/*
+ * 
+ *  App Logic
+ */
+
 for (let i = 0; i < 20; i++) 
 {
     const row = document.createElement('div');
@@ -247,19 +255,13 @@ clear_btn.addEventListener('click', () =>
 {
     run_btn.textContent = 'run';
     run_btn.disabled = true;
-    select_bfs_root_btn.disabled = false;
+    select_root_btn.disabled = false;
 
     f_select_targets = false;
     f_draw_walls = false;
 
     grid.childNodes.forEach(row => {
-        row.childNodes.forEach(cell => {
-            cell.classList.remove('wall');
-            cell.classList.remove('target');
-            cell.classList.remove('root');
-            cell.classList.remove('visited');
-            cell.classList.remove('target-found');
-        }); 
+        row.childNodes.forEach(cell => cell.className = 'cell'); 
     });
     root = null;
     targets = 0;
@@ -268,24 +270,29 @@ clear_btn.addEventListener('click', () =>
     select_targets_btn.disabled = false;
 });
 
+rubber_btn.addEventListener('click', () => 
+{
+    f_draw_walls = f_select_targets = f_select_root = false;
+    f_rubber = true;
+});
+
 draw_walls_btn.addEventListener('click', () => 
 {
-    f_select_targets = false;
+    f_rubber = f_select_targets = f_select_root = false;
     f_draw_walls = true;
 });
 
 select_targets_btn.addEventListener('click', () => 
 {
-    f_draw_walls = false;
+    f_rubber = f_draw_walls = f_select_root = false;
     f_select_targets = true;
 });
 
-select_bfs_root_btn.addEventListener('click', () => 
+select_root_btn.addEventListener('click', () => 
 {
-    f_draw_walls = false;
-    f_select_targets = false;
+    f_rubber = f_draw_walls = f_select_targets = false;
     if (!root) f_select_root = true;
-    else console.error('Error: select_bfs_root_btn: bfs root already selected.');
+    else console.error('Error: select_root_btn: bfs root already selected.');
 });
 
 /* run_btn_handler() is just an experiment
@@ -304,8 +311,10 @@ function run_btn_handler() {
                     cell.classList.remove('target-found');
                 });
             });
-            draw_walls_btn.disabled = select_targets_btn.disabled =
-                clear_btn.disabled = false;
+
+            clear_btn.disabled = rubber_btn.disabled = 
+                draw_walls_btn.disabled = select_targets_btn.disabled 
+                = false;
 
             algo.reset_data();
             algo.set_f_freeze(false);
@@ -319,7 +328,7 @@ function run_btn_handler() {
             is to have the root selected. 
             The target is not needed because 
             I may want to just visualize the algorithmic pattern. 
-            Same reason for walls are not needed. */
+            Same reason for why walls are not needed. */
             if (!root) {
                 document.querySelector('#err-msg').textContent = 'Error: no root selected.';
                 return;
@@ -407,14 +416,27 @@ But, not for every single movement inside a cell. */
 grid.addEventListener('mouseover', e => 
 {
     const cell_classlist = e.target.classList;
+
     /* the grid container coincides with cells 
     but, I do not want to assume that. */
-    if (!e.target.classList.contains('cell') || 
-    e.target.classList.length > 1) {
-        return;
-    }
+    if (!e.target.classList.contains('cell')) return;
 
-    if (f_draw_walls) {
+    if (f_rubber) 
+    {
+        if (prev_rubber_hover) {
+            prev_rubber_hover.classList.remove('rubber-hover');
+            prev_root_hover = null;
+        }
+        if (cell_classlist.length > 1) {
+            cell_classlist.add('rubber-hover');
+            prev_rubber_hover = e.target;
+        }
+    } 
+    
+    if (cell_classlist.length > 1) return;
+    
+    if (f_draw_walls) 
+    {
         if (prev_wall_hover) prev_wall_hover.classList.remove('wall-hover');
         cell_classlist.add('wall-hover');
         prev_wall_hover = e.target;
@@ -441,14 +463,19 @@ grid.addEventListener('mouseover', e =>
 });
 
 grid.addEventListener('mouseleave', e => {
-    if (prev_wall_hover) {
+    if (prev_rubber_hover) {
+        prev_rubber_hover.classList.remove('rubber-hover');
+        prev_rubber_hover = null;
+    }
+    else if (prev_wall_hover) {
         prev_wall_hover.classList.remove('wall-hover');
         prev_wall_hover = null;
     }
     else if (prev_target_hover) {
         prev_target_hover.classList.remove('target-hover');
         prev_target_hover = null;
-    } else if (prev_root_hover) {
+    } 
+    else if (prev_root_hover) {
         prev_root_hover.classList.remove('root-hover');
         prev_root_hover = null;
     }
@@ -462,19 +489,28 @@ grid.addEventListener('click', e =>
     /* if there is a hover class (e.g. wall-hover), 
     it means the cell is empty.
     So, I can safely color it. */
-
-    if (f_draw_walls && cell_classlist.contains('wall-hover'))
+    if (f_rubber && cell_classlist.contains('rubber-hover')) 
+    {
+        if (cell_classlist.contains('root')) {
+            root = null;
+            run_btn.disabled = true;
+            select_root_btn.disabled = false
+        }
+        else if (cell_classlist.contains('target')) {
+            targets -= 1;
+        }
+        e.target.className = 'cell';
+    }
+    else if (f_draw_walls && cell_classlist.contains('wall-hover'))
     {
         cell_classlist.add('wall');
         cell_classlist.remove('wall-hover');
-            // update_history('wall', e.target.textContent);
     }
     else if (f_select_targets && cell_classlist.contains('target-hover')) 
     {
         cell_classlist.remove('target-hover');
         cell_classlist.add('target');
         targets += 1;
-        // update_history('target', e.target.textContent);
     }
     else if (f_select_root && cell_classlist.contains('root-hover') && !root) 
     {
@@ -482,8 +518,7 @@ grid.addEventListener('click', e =>
         cell_classlist.remove('root-hover');
         root = e.target;
         run_btn.disabled = false;
-        select_bfs_root_btn.disabled = true;
-        // update_history('root', e.target.textContent);
+        select_root_btn.disabled = true;
 
         /* as soon as the root is selected, 
         I set the flag to false because no other roots
@@ -497,21 +532,3 @@ function update_res(target_found, cells_visited, steps) {
     res_cells_visited.textContent = cells_visited;
     res_steps.textContent = steps;
 }
-
-// function update_history(_class, coordinates) {
-//     history_idx += 1;
-//     history.push(_class + ',' + coordinates);
-//     if (history_idx >= 0) {
-//         undo_btn.disabled = false;
-//         redo_btn.disabled = false;
-//     }
-// }
-
-// undo_btn.addEventListener('click', () => {
-//     let last_move = history[history_idx];
-//     let info = last_move.split(',');
-//     let _class = info[0], x = info[1], y = info[2];
-//     grid.childNodes[x].childNodes[y].classList.remove(_class);
-// });
-
-
