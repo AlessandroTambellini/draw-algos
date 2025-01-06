@@ -15,6 +15,7 @@ const undo_btn = document.querySelector('#undo-btn');
 const redo_btn = document.querySelector('#redo-btn');
 
 const step_pause_input = document.querySelector('#step-pause');
+document.querySelector('form').addEventListener('submit', e => e.preventDefault());
 
 const res_target_found = document.querySelector('#target-found');
 const res_cells_visited = document.querySelector('#cells-visited');
@@ -214,8 +215,7 @@ let prev_root_hover = null;
 let is_stop = true;
 // let is_run = true;
 
-let mouse_down = false;
-let mousedown_target = null;
+let leftBtn_down = false;
 
 // 1) build the grid
 for (let i = 0; i < 20; i++) 
@@ -239,17 +239,9 @@ So, I disable the dragging on the cells */
 document.addEventListener('dragstart', e => e.preventDefault());
 document.addEventListener('mousedown', e => {
     // 0 is the left button
-    if (e.button === 0) {
-        mouse_down = true;
-        if (e.target.classList.contains('cell') &&
-            !e.target.classList.contains('wall') &&
-            !e.target.classList.contains('root') &&
-            !e.target.classList.contains('target')) {
-            mousedown_target = e.target;
-        }
-    }
+    if (e.button === 0) leftBtn_down = true;
 });
-document.addEventListener('mouseup', () => mouse_down = false);
+document.addEventListener('mouseup', () => leftBtn_down = false);
 
 clear_btn.addEventListener('click', () => 
 {
@@ -391,7 +383,11 @@ stop_btn.addEventListener('click', async () => {
         /* what happens if I reach this exact point and 
         the user immediately clicks again? */
         algo.set_f_freeze(false);
-        await algo.run();
+        const res = await algo.run();
+        if (res) {
+            stop_btn.disabled = true;
+            run_btn.disabled = false;
+        }
     }
 });
 
@@ -402,107 +398,97 @@ p.s. I do not know if the browser does some kind of optimization in this case.
 
 Note 2: before adding a class to an element,
 I do not check if the class is already present,
-because in that case the add() method simply does not do anything.*/
-grid.addEventListener('mouseover', e => {
-    /* It's used mouseover and not mousemove because 
-    I want this callback function to be called 
-    for every child-most node hovered (a cell in this case). 
-    But, not for every single movement inside a cell. */
-   
-    if (!e.target.classList.contains('cell')) {
-        /* For now all the space of the grid and of the rows is occupied by cells.
-        So, the target should always be a cell.
-        But, it's a expandability check just in case of future changes in which not
-        all space is occupied by cells */
+because in that case the add() method simply does not do anything.
+
+Note 3: It's used mouseover and not mousemove because 
+I want this callback function to be called 
+for every child-most node hovered (a cell in this case). 
+But, not for every single movement inside a cell. */
+grid.addEventListener('mouseover', e => 
+{
+    const cell_classlist = e.target.classList;
+    /* the grid container coincides with cells 
+    but, I do not want to assume that. */
+    if (!e.target.classList.contains('cell') || 
+    e.target.classList.length > 1) {
         return;
     }
 
-    const cell_classlist = e.target.classList;
     if (f_draw_walls) {
-        if (!cell_classlist.contains('wall') &&
-            !cell_classlist.contains('target') &&
-            !cell_classlist.contains('root')) {
-            if (prev_wall_hover) prev_wall_hover.classList.remove('wall-hover');
-            cell_classlist.add('wall-hover');
-            prev_wall_hover = e.target;
-        }
-    }
-
-    // if (mouse_down && f_draw_walls) {
-    //     if (mousedown_target) {
-    //         mousedown_target.classList.add('wall');
-    //         mousedown_target = null;
-    //     }
-    //     if (!e.target.classList.contains('target') &&
-    //         !e.target.classList.contains('root')) {
-    //         e.target.classList.add('wall');
-    //         // update_history('wall', e.target.textContent);
-    //     }
-    // }
-
-    else if (f_select_targets) {
-        if (!cell_classlist.contains('wall') &&
-            !cell_classlist.contains('target') &&
-            !cell_classlist.contains('root')) {
-            if (prev_target_hover) prev_target_hover.classList.remove('target-hover');
-            cell_classlist.add('target-hover');
-            prev_target_hover = e.target;
-        }
-    }
-
-    if (f_select_root && !root) {
-        if (!cell_classlist.contains('wall') &&
-            !cell_classlist.contains('target')) {
-            if (prev_root_hover) prev_root_hover.classList.remove('root-hover');
-            cell_classlist.add('root-hover');
-            prev_root_hover = e.target;
-        }
-    }
-});
-
-grid.addEventListener('mouseleave', () => {
-    if (prev_wall_hover) prev_wall_hover.classList.remove('wall-hover');
-    if (prev_target_hover) prev_target_hover.classList.remove('target-hover');
-    if (prev_root_hover) prev_root_hover.classList.remove('root-hover');
-});
-
-grid.addEventListener('click', e => {
-    if (!e.target.classList.contains('cell')) return;
-
-    const cell_classlist = e.target.classList;
-    if (f_draw_walls) {
-        if (!cell_classlist.contains('target') && 
-        !cell_classlist.contains('root')) {
+        if (prev_wall_hover) prev_wall_hover.classList.remove('wall-hover');
+        cell_classlist.add('wall-hover');
+        prev_wall_hover = e.target;
+        if (leftBtn_down) {
+            if (e.fromElement.classList.contains('cell') && 
+            e.fromElement.classList.length === 1) {
+                e.fromElement.classList.add('wall');
+            }
             cell_classlist.add('wall');
-            cell_classlist.remove('wall-hover');
-            // update_history('wall', e.target.textContent);
         }
     }
-    else if (f_select_targets) {
-        if (!cell_classlist.contains('wall') &&
-        !cell_classlist.contains('root') &&
-        !cell_classlist.contains('target')) {
-            cell_classlist.remove('target-hover');
-            cell_classlist.add('target');
-            targets += 1;
-            // update_history('target', e.target.textContent);
-        }
+    else if (f_select_targets) 
+    {
+        if (prev_target_hover) prev_target_hover.classList.remove('target-hover');
+        cell_classlist.add('target-hover');
+        prev_target_hover = e.target;
     }
-    else if (f_select_root && !root) {
-        if (!cell_classlist.contains('wall') &&
-        !cell_classlist.contains('target')) {
-            cell_classlist.add('root');
-            cell_classlist.remove('root-hover');
-            root = e.target;
-            run_btn.disabled = false;
-            select_bfs_root_btn.disabled = true;
-            // update_history('root', e.target.textContent);
+    else if (f_select_root && !root) 
+    {
+        if (prev_root_hover) prev_root_hover.classList.remove('root-hover');
+        cell_classlist.add('root-hover');
+        prev_root_hover = e.target;
+    }
+});
 
-            /* as soon as the root is selected, 
-            I set the flag to false because no other roots
-            can be selected. It's unique (at least for now) */
-            f_select_root = false;
-        }
+grid.addEventListener('mouseleave', e => {
+    if (prev_wall_hover) {
+        prev_wall_hover.classList.remove('wall-hover');
+        prev_wall_hover = null;
+    }
+    else if (prev_target_hover) {
+        prev_target_hover.classList.remove('target-hover');
+        prev_target_hover = null;
+    } else if (prev_root_hover) {
+        prev_root_hover.classList.remove('root-hover');
+        prev_root_hover = null;
+    }
+});
+
+grid.addEventListener('click', e => 
+{
+    const cell_classlist = e.target.classList;
+    if (!cell_classlist.contains('cell')) return;
+
+    /* if there is a hover class (e.g. wall-hover), 
+    it means the cell is empty.
+    So, I can safely color it. */
+
+    if (f_draw_walls && cell_classlist.contains('wall-hover'))
+    {
+        cell_classlist.add('wall');
+        cell_classlist.remove('wall-hover');
+            // update_history('wall', e.target.textContent);
+    }
+    else if (f_select_targets && cell_classlist.contains('target-hover')) 
+    {
+        cell_classlist.remove('target-hover');
+        cell_classlist.add('target');
+        targets += 1;
+        // update_history('target', e.target.textContent);
+    }
+    else if (f_select_root && cell_classlist.contains('root-hover') && !root) 
+    {
+        cell_classlist.add('root');
+        cell_classlist.remove('root-hover');
+        root = e.target;
+        run_btn.disabled = false;
+        select_bfs_root_btn.disabled = true;
+        // update_history('root', e.target.textContent);
+
+        /* as soon as the root is selected, 
+        I set the flag to false because no other roots
+        can be selected. It's unique */
+        f_select_root = false;
     }
 });
 
