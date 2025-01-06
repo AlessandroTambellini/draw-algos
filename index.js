@@ -226,12 +226,16 @@ let leftBtn_down = false;
  *  App Logic
  */
 
-for (let i = 0; i < 20; i++) 
+let cells_per_row = -1;
+if (window.innerWidth <= 430 /* iPhone 14 Pro Max */) cells_per_row = 10;
+else if (window.innerWidth <= 768 /* iPad Mini */) cells_per_row = 15;
+else cells_per_row = 20;
+for (let i = 0; i < cells_per_row; i++) 
 {
     const row = document.createElement('div');
     row.classList.add('row');
 
-    for (let j = 0; j < 20; j++) 
+    for (let j = 0; j < cells_per_row; j++) 
     {
         const cell = document.createElement('div');
         cell.classList.add('cell');

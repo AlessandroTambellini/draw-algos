@@ -1,6 +1,9 @@
-- responsive grid and organization of the divs --> mobile first
-- is history a good feature to add?
-- implement semaphore for lock/unlock of actions?
-- some better logging
-- choose the size of the grid
-- put some default maze
+- style:
+    The app has no style apart from what I think is necessary for usability.
+- put some default maze:
+    Sometimes, while testing the app, 
+    I'd have liked to have some default pattern/maze to paste on the grid. 
+    A good idea might be to add a panel with some default pattern/maze to choose from,
+    and when clicked they are drawn on the grid.
+- add a new algo:
+    I left the skeleton on how to add new algos.
