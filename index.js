@@ -391,19 +391,15 @@ run_btn.addEventListener('click', run_btn_handler());
 stop_btn.addEventListener('click', async () => {
     if (!f_stop) return;
     if (is_stop) {
-        f_stop = false;
         stop_btn.textContent = 'resume';
         run_btn.disabled = false;
         algo.set_f_freeze(true);
         is_stop = false;
-        f_stop = true;
     } else {
-        f_stop = false;
         run_btn.disabled = true;
         stop_btn.textContent = 'stop';
         algo.set_f_freeze(false);
         is_stop = true;
-        f_stop = true;
         const res = await algo.run();
         if (res) {
             stop_btn.disabled = true;
