@@ -46,6 +46,9 @@
 .visited {
     background-color: rgb(160, 200, 245);
 }
+/* .visited-test {
+    background-color: rgb(245, 170, 160);
+} */
 
 .wall {
     background-color: rgb(97, 40, 40);

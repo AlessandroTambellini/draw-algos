@@ -3,7 +3,6 @@
 - put some default maze:
     Sometimes, while testing the app, 
     I'd have liked to have some default pattern/maze to paste on the grid. 
-    A good idea might be to add a panel with some default pattern/maze to choose from,
-    and when clicked they are drawn on the grid.
+    A good idea might be to add a side panel with some default pattern/maze to choose from, perhaps meaningful for the understanding of the algorithm.
 - add a new algo:
     I left the skeleton on how to add new algos.

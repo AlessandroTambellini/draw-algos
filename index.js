@@ -220,6 +220,7 @@ let prev_target_hover = null;
 let prev_root_hover = null;
 
 let is_stop = true;
+let is_run = true;
 
 let leftBtn_down = false;
 
@@ -260,20 +261,19 @@ document.addEventListener('mouseup', () => leftBtn_down = false);
 clear_btn.addEventListener('click', () => 
 {
     if (!f_clear) return;
-    run_btn.disabled = true;
-    run_btn.textContent = 'run';
-    select_root_btn.disabled = false;
-    
     f_rubber = f_draw_walls = f_select_targets = f_select_root = false;
-
+    
     grid.childNodes.forEach(row => {
         row.childNodes.forEach(cell => cell.className = 'cell'); 
     });
     root = null;
     targets = 0;
-
-    draw_walls_btn.disabled = false;
-    select_targets_btn.disabled = false;
+    
+    is_run = true;
+    run_btn.disabled = true;
+    run_btn.textContent = 'run';
+    select_root_btn.disabled = draw_walls_btn.disabled = 
+        select_targets_btn.disabled = false;
 });
 
 rubber_btn.addEventListener('click', () => 
@@ -301,92 +301,82 @@ select_root_btn.addEventListener('click', () =>
     else console.error('Error: select_root_btn: bfs root already selected.');
 });
 
-function run_btn_handler() {
-    // I use a clojure to manage the local flag 'is_run'
-    let is_run = true;
-    return async function() {
-        if (!f_run) return;
-        if (is_run)
-        {
-            f_run = false; 
-            f_clear = false;
-            /* The only condition necessary to run the algo,
-            is to have the root selected. 
-            The target is not needed because 
-            I may want to just visualize the algorithmic pattern. 
-            Same reason for why walls are not needed. */
-            if (!root) {
-                document.querySelector('#err-msg').textContent = 'Error: no root selected.';
-                return;
-            }
-    
-            f_rubber = f_draw_walls = f_select_targets = false;
-            
-            btns_container.childNodes.forEach(btn => btn.disabled = true);
-            stop_btn.disabled = false;
-            run_btn.textContent = 'reset';
-            
-            let choosen_algo = -1;
-            document.querySelectorAll('.algo').forEach(input => {
-                if (input.checked) choosen_algo = Number(input.value);
-            });
-            const step_pause = step_pause_input.value;
-            algos_fieldset.disabled = step_pause_input.disabled = true;
-
-            switch (choosen_algo) {
-                case BFS:
-                    algo = new Bfs();
-                    break;
-                case DFS:
-                    algo = new Dfs();
-                    break;
-                    // case WHATEVER:
-                    //     algo = new Whatever();
-                    //     break;
-                default:
-                    console.error('Error: the algorithm specified is not valid.');
-                    break;
-            }
-            algo.set_step_pause(step_pause);
-            is_run = false;
-            f_run = true;
-            const res = await algo.run();
-            if (res) {
-                stop_btn.disabled = true;
-                clear_btn.disabled = run_btn.disabled = false;
-            }
+run_btn.addEventListener('click', async () => {
+    if (!f_run) return;
+    if (is_run)
+    {
+        f_run = f_clear = false;
+        /* The only condition necessary to run the algo,
+        is to have the root selected. 
+        The target is not needed because 
+        I may want to just visualize the algorithmic pattern. 
+        Same reason for why walls are not needed. */
+        if (!root) {
+            document.querySelector('#err-msg').textContent = 'Error: no root selected.';
+            return;
         }
-        else
-        {
-            f_run = false;
-            run_btn.textContent = 'run';
-            stop_btn.textContent = 'stop';
+
+        f_rubber = f_draw_walls = f_select_targets = false;
+        
+        btns_container.childNodes.forEach(btn => btn.disabled = true);
+        stop_btn.disabled = false;
+        run_btn.textContent = 'reset';
+        
+        let choosen_algo = -1;
+        document.querySelectorAll('.algo').forEach(input => {
+            if (input.checked) choosen_algo = Number(input.value);
+        });
+        const step_pause = step_pause_input.value;
+        algos_fieldset.disabled = step_pause_input.disabled = true;
+
+        switch (choosen_algo) {
+            case BFS:
+                algo = new Bfs();
+                break;
+            case DFS:
+                algo = new Dfs();
+                break;
+                // case WHATEVER:
+                //     algo = new Whatever();
+                //     break;
+            default:
+                console.error('Error: the algorithm specified is not valid.');
+                break;
+        }
+        algo.set_step_pause(step_pause);
+        is_run = false;
+        f_run = true;
+        const res = await algo.run();
+        if (res) {
             stop_btn.disabled = true;
-            grid.childNodes.forEach(row => {
-                row.childNodes.forEach(cell => {
-                    cell.classList.remove('visited');
-                    cell.classList.remove('target-found');
-                });
-            });
-
-            algos_fieldset.disabled = step_pause_input.disabled = false;
-
-            clear_btn.disabled = rubber_btn.disabled = 
-                draw_walls_btn.disabled = select_targets_btn.disabled 
-                = false;
-
-            algo.reset_data();
-            algo.set_f_freeze(false);
-
-            is_stop = true;
-            is_run = true;
             f_clear = true;
-            f_run = true;
+            clear_btn.disabled = run_btn.disabled = false;
         }
     }
-}
+    else
+    {
+        f_run = false;
+        grid.childNodes.forEach(row => {
+            row.childNodes.forEach(cell => {
+                cell.classList.remove('visited');
+                cell.classList.remove('target-found');
+            });
+        });
+        
+        algo.reset_data();
+        algo.set_f_freeze(false);
+        
+        run_btn.textContent = 'run';
+        stop_btn.textContent = 'stop';
+        stop_btn.disabled = true;
+        algos_fieldset.disabled = step_pause_input.disabled = false;
+        clear_btn.disabled = rubber_btn.disabled = 
+            draw_walls_btn.disabled = select_targets_btn.disabled = false;
 
-run_btn.addEventListener('click', run_btn_handler());
+        is_run = is_stop = true;
+        f_clear = f_run = true;
+    }
+});
 
 stop_btn.addEventListener('click', async () => {
     if (!f_stop) return;
