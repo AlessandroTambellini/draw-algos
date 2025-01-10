@@ -14,12 +14,13 @@ const select_root_btn = document.querySelector('#select-root');
 const run_btn = document.querySelector('#run-btn');
 const stop_btn = document.querySelector('#stop-btn');
 
-const step_pause_input = document.querySelector('#step-pause');
-document.querySelector('form').addEventListener('submit', e => e.preventDefault());
-
 const res_target_found = document.querySelector('#target-found');
 const res_cells_visited = document.querySelector('#cells-visited');
 const res_steps = document.querySelector('#steps');
+
+document.querySelector('form').addEventListener('submit', e => e.preventDefault());
+const algos_fieldset = document.querySelector('#algos-fieldset');
+const step_pause_input = document.querySelector('#step-pause');
 
 /*
 * 
@@ -330,6 +331,7 @@ function run_btn_handler() {
                 if (input.checked) choosen_algo = Number(input.value);
             });
             const step_pause = step_pause_input.value;
+            algos_fieldset.disabled = step_pause_input.disabled = true;
 
             switch (choosen_algo) {
                 case BFS:
@@ -366,6 +368,8 @@ function run_btn_handler() {
                     cell.classList.remove('target-found');
                 });
             });
+
+            algos_fieldset.disabled = step_pause_input.disabled = false;
 
             clear_btn.disabled = rubber_btn.disabled = 
                 draw_walls_btn.disabled = select_targets_btn.disabled 
