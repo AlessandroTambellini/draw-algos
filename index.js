@@ -305,7 +305,9 @@ run_btn.addEventListener('click', async () => {
     if (!f_run) return;
     if (is_run)
     {
+        /* The f_run flag is used to avoid a queue of clicks. */
         f_run = f_clear = false;
+
         /* The only condition necessary to run the algo,
         is to have the root selected. 
         The target is not needed because 
