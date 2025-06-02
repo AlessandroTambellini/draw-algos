@@ -242,7 +242,7 @@ for (let i = 0; i < cells_per_row; i++)
     {
         const cell = document.createElement('div');
         cell.classList.add('cell');
-        cell.textContent = i + ',' + j;
+        // cell.textContent = i + ',' + j;
         row.appendChild(cell);
     }
     grid.appendChild(row);

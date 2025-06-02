@@ -1,15 +1,60 @@
+:root {
+    --background-color: rgb(26, 28, 32);
+    --text-color: rgb(236, 239, 242);
+    --delimiter-color: rgb(46, 48, 57);
+    --link-color: rgb(115, 122, 222);
+    --time-color: rgb(140, 144, 161);
+    --details-color: rgb(140, 144, 161);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    /* display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    */
+    margin: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 #grid {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    border: 1px solid rgb(97, 40, 40);;
     width: fit-content;
-
+    
     /* because in each cell is shown its position,
     if, while drawing the walls, text is selected, it's noisy. */
     -webkit-user-select: none;
     user-select: none;
+
+    border: 1px solid var(--details-color);
+    /* I thought about setting .row:nth-last-of-type, but because the rows are inserted via js
+    after the css is loaded, it has not effect. */
+    border-bottom: 2px solid var(--details-color);
+}
+
+#btns-container {
+    margin-block: 1rem;
+}
+
+#btns-container button {
+    border-radius: 7px;
+    padding: .25em .5em;
+    font-size: .9rem;
+    background-color: var(--link-color);
 }
 
 #err-msg {
@@ -19,15 +64,19 @@
 
 .row {
     display: flex;
+    border-top: 1px solid var(--details-color);
+    border-left: 1px solid var(--details-color);
 }
 
 .cell {
-    font-size: .75rem;
-    color: gray;
-    width: 5ch; /* it is proportional to the font-size */
-    padding: .25rem;
+    /* font-size: .75rem; */
+    /* color: gray; */
+    /*width: 5ch;*/ /* it is proportional to the font-size */
+    /* padding: .25rem; */
+    height: 4vh;
     aspect-ratio: 1;
-    border: 1px solid black;
+    border-right: 1px solid var(--details-color);
+    /* border: 1px solid var(--details-color); */
 }
 
 @keyframes pulse {

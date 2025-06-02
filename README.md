@@ -1,5 +1,9 @@
-# Draw
-Draw on a grid and let algos run.
+# Draw Algos
+Draw on a grid and let algorithms run.
 
-I left if unfinished for whoever wants to experiment with it: see [TODO](./TODO).
-Next, you may change the behaviour of some component
+## TODO
+Some additional feature/functionality you may add:
+- Some default maze:
+    A side panel with some default pattern/maze to choose from.
+- New algos:
+    I left the skeleton on how to add a new algo in the code.
