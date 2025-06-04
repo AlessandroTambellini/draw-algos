@@ -9,7 +9,6 @@
 
     <link rel="stylesheet" href="./index.css">
     <script src="./index.js" defer></script>
-    <!-- <script src="./test.js" defer></script> -->
 </head>
 <body>
     <main>
@@ -21,7 +20,7 @@
             |
             <button id="draw-walls-btn">draw walls</button>
             <button id="select-targets-btn">select targets</button>
-            <button id="select-root">select root</button>
+            <button id="select-root-btn">select root</button>
             |
             <button id="run-btn" disabled>run</button>
             <button id="stop-btn" disabled>stop</button>
@@ -29,31 +28,32 @@
     </main>
     
     <p id="err-msg"></p>
-    <!-- <button id="test-btn">test</button> -->
 
-    <ul>
-        <li>target(s) found: <span id="target-found"></span></li>
-        <li>cells visited: <span id="cells-visited"></span></li>
-        <li>steps: <span id="steps"></span></li>
-    </ul>
+    <div id="controls">
+        <ul>
+            <li>Target(s) found: <span id="target-found">-</span></li>
+            <li>Cells visited: <span id="cells-visited">-</span></li>
+            <li>Steps: <span id="steps">-</span></li>
+        </ul>
 
-    <form>
-        <fieldset id="algos-fieldset">
-            <legend>algo</legend>
-            
-            <!-- BFS Algorithm: https://en.wikipedia.org/wiki/Breadth-first_search -->
-            <label for="bfs">BFS</label>
-            <input class="algo" id="bfs" type="radio" value='0' name="algo" checked="checked">
+        <form>
+            <fieldset id="algos-fieldset">
+                <legend>Algo</legend>
+                
+                <!-- BFS Algorithm: https://en.wikipedia.org/wiki/Breadth-first_search -->
+                <label for="bfs">BFS</label>
+                <input class="algo" id="bfs" type="radio" value='0' name="algo" checked="checked">
 
-            <label for="dfs">DFS</label>
-            <input class="algo" id="dfs" type="radio" value='1' name="algo">
-            <!-- <label for="whatever">whatever</label>
-            <input class="algo" id="whatever" type="radio" value="whatever" name="algo"> -->
-        </fieldset>
-
-        <label for="step-pause">step pause</label>
-        <input id="step-pause" type="number" min="0" value="200">
-    </form>
+                <label for="dfs">DFS</label>
+                <input class="algo" id="dfs" type="radio" value='1' name="algo">
+                <!-- <label for="whatever">whatever</label>
+                <input class="algo" id="whatever" type="radio" value="whatever" name="algo"> -->
+            </fieldset>
+            <br>
+            <label for="step-pause">Step Pause</label>
+            <input id="step-pause" type="number" min="0" value="200">
+        </form>
+    </div>
 
 </body>
 </html>

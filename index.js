@@ -10,7 +10,7 @@ const clear_btn = document.querySelector('#clear-btn');
 const rubber_btn = document.querySelector('#rubber-btn');
 const draw_walls_btn = document.querySelector('#draw-walls-btn');
 const select_targets_btn = document.querySelector('#select-targets-btn');
-const select_root_btn = document.querySelector('#select-root');
+const select_root_btn = document.querySelector('#select-root-btn');
 const run_btn = document.querySelector('#run-btn');
 const stop_btn = document.querySelector('#stop-btn');
 
@@ -21,6 +21,33 @@ const res_steps = document.querySelector('#steps');
 document.querySelector('form').addEventListener('submit', e => e.preventDefault());
 const algos_fieldset = document.querySelector('#algos-fieldset');
 const step_pause_input = document.querySelector('#step-pause');
+
+/*
+ * 
+ *  Global vars/flags 
+ */
+
+let algo = null;
+let root = null;
+let targets = 0;
+
+let f_clear = true;
+let f_rubber = false;
+let f_draw_walls = false;
+let f_select_targets = false;
+let f_select_root = false;
+let f_run = true;
+let f_stop = true;
+
+let prev_rubber_hover = null;
+let prev_wall_hover = null;
+let prev_target_hover = null;
+let prev_root_hover = null;
+
+let is_stop = true;
+let is_run = true;
+
+let leftBtn_down = false;
 
 /*
 * 
@@ -95,6 +122,7 @@ class Bfs {
             curr.classList.add('visited');
             if (curr.classList.contains('target')) {
                 targets_found += 1;
+                curr.classList.remove('visited');
                 curr.classList.add('target-found');
             }
             await new Promise(resolve => setTimeout(resolve, this.#step_pause));
@@ -172,6 +200,7 @@ class Dfs {
             curr.classList.add('visited');
             if (curr.classList.contains('target')) {
                 targets_found += 1;
+                curr.classList.remove('visited');
                 curr.classList.add('target-found');
             }
             await new Promise(resolve => setTimeout(resolve, this.#step_pause));
@@ -199,39 +228,12 @@ class Whatever {
 
 /*
  * 
- *  Global vars/flags 
- */
-
-let algo = null;
-let root = null;
-let targets = 0;
-
-let f_clear = true;
-let f_rubber = false;
-let f_draw_walls = false;
-let f_select_targets = false;
-let f_select_root = false;
-let f_run = true;
-let f_stop = true;
-
-let prev_rubber_hover = null;
-let prev_wall_hover = null;
-let prev_target_hover = null;
-let prev_root_hover = null;
-
-let is_stop = true;
-let is_run = true;
-
-let leftBtn_down = false;
-
-/*
- * 
  *  App Logic
  */
 
 let cells_per_row = -1;
-if (window.innerWidth <= 430 /* iPhone 14 Pro Max */) cells_per_row = 10;
-else if (window.innerWidth <= 768 /* iPad Mini */) cells_per_row = 15;
+if (window.innerWidth <= 720) cells_per_row = 10;
+else if (window.innerWidth <= 960) cells_per_row = 15;
 else cells_per_row = 20;
 for (let i = 0; i < cells_per_row; i++) 
 {
@@ -242,7 +244,7 @@ for (let i = 0; i < cells_per_row; i++)
     {
         const cell = document.createElement('div');
         cell.classList.add('cell');
-        // cell.textContent = i + ',' + j;
+        cell.textContent = i + ',' + j;
         row.appendChild(cell);
     }
     grid.appendChild(row);
