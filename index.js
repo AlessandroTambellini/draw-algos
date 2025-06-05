@@ -82,25 +82,18 @@ class Bfs {
         this.#freezed_steps = 0;
     }
 
-    async run() {
+    async run() 
+    {
         if (!root) {
-            /* I want the algos API to be independent from the UI 
-            (more precisely, the HTML). So, I do not assume the root
-            to be defined when bfs() is called, even though it cannot
-            happen by 'following the UI'.
-            If, for instance, I enter the inspection panel of the browser 
-            and I remove the disabled attribute from the stop button,
-            I can click 2 times on this last button to call
-            bfs() without root being defined. */
             console.error('Error: no root selected.');
             return 0;
         }
         
         const visited = this.#freezed_visited ? this.#freezed_visited : new Set();
-        // It's a queue, but I call it ds for every algorithm
         const ds = this.#freezed_ds ? this.#freezed_ds : [ root ];
         let targets_found = this.#freezed_targets_found;
         let steps = this.#freezed_steps;
+
         while (ds.length > 0) 
         {
             if (this.#f_freeze) {
@@ -115,16 +108,22 @@ class Bfs {
             
             steps += 1;
             const curr = ds.shift();
-            if (curr.classList.contains('wall')) continue;
-            
-            if (visited.has(curr.textContent)) continue;
+
+            // Skip if it's a wall or if it's already visited.
+            if (curr.classList.contains('wall') || visited.has(curr.textContent)) continue;
+
             visited.add(curr.textContent);
-            curr.classList.add('visited');
-            if (curr.classList.contains('target')) {
+
+            if (!curr.classList.contains('target') && !curr.classList.contains('root')) {
+                curr.classList.add('visited');
+            }
+
+            if (curr.classList.contains('target')) 
+            {
                 targets_found += 1;
-                curr.classList.remove('visited');
                 curr.classList.add('target-found');
             }
+
             await new Promise(resolve => setTimeout(resolve, this.#step_pause));
             
             const x = Number(curr.textContent.split(',')[0]);
@@ -174,35 +173,48 @@ class Dfs {
     (first or last)
     - the order in which cells are pushed to the array
     to have the order top, right, bottom, left */
-    async run() {
+    async run() 
+    {
         if (!root) {
             console.error('Error: dfs: no root defined.');
             return 0;
         }
+
         const visited = this.#freezed_visited ? this.#freezed_visited : new Set();
         const ds = this.#freezed_ds ? this.#freezed_ds : [ root ];
         let targets_found = this.#freezed_targets_found;
         let steps = this.#freezed_steps;
-        while (ds.length > 0) {
-            if (this.#f_freeze) {
+        
+        while (ds.length > 0) 
+        {
+            if (this.#f_freeze) 
+            {
                 this.#freezed_ds = ds;
                 this.#freezed_visited = visited;
                 this.#freezed_targets_found = targets_found;
                 this.#freezed_steps = steps;
                 break;
             }
+
             if (targets > 0 && targets_found === targets) break;
+            
             steps += 1;
             const curr = ds.pop();
-            if (curr.classList.contains('wall')) continue;
-            if (visited.has(curr.textContent)) continue;
+            
+            // Skip if it's a wall or if it was already visited.
+            if (curr.classList.contains('wall') || visited.has(curr.textContent)) continue;
+            
             visited.add(curr.textContent);
-            curr.classList.add('visited');
+
+            if (!curr.classList.contains('target') && !curr.classList.contains('root')) {
+                curr.classList.add('visited');
+            }
+            
             if (curr.classList.contains('target')) {
                 targets_found += 1;
-                curr.classList.remove('visited');
                 curr.classList.add('target-found');
             }
+            
             await new Promise(resolve => setTimeout(resolve, this.#step_pause));
             
             const x = Number(curr.textContent.split(',')[0]);
@@ -213,6 +225,7 @@ class Dfs {
             if (y < grid.childNodes[x].childNodes.length - 1) ds.push(grid.childNodes[x].childNodes[y + 1]);
             if (x > 0) ds.push(grid.childNodes[x - 1].childNodes[y]);
         }
+
         if (!this.#f_freeze) {
             update_res(targets > 0 && targets_found === targets, visited.size, steps);
             return 1;
@@ -222,7 +235,7 @@ class Dfs {
     }
 }
 
-class Whatever {
+class AnotherAlgo {
 
 }
 
@@ -274,8 +287,7 @@ clear_btn.addEventListener('click', () =>
     is_run = true;
     run_btn.disabled = true;
     run_btn.textContent = 'run';
-    select_root_btn.disabled = draw_walls_btn.disabled = 
-        select_targets_btn.disabled = false;
+    select_root_btn.disabled = draw_walls_btn.disabled = select_targets_btn.disabled = false;
 });
 
 rubber_btn.addEventListener('click', () => 
@@ -340,16 +352,18 @@ run_btn.addEventListener('click', async () => {
             case DFS:
                 algo = new Dfs();
                 break;
-                // case WHATEVER:
-                //     algo = new Whatever();
-                //     break;
+            // case ANOTHERALGO:
+            //     algo = new AnotherAlgo();
+            //     break;
             default:
                 console.error('Error: the algorithm specified is not valid.');
                 break;
         }
+
         algo.set_step_pause(step_pause);
         is_run = false;
         f_run = true;
+
         const res = await algo.run();
         if (res) {
             stop_btn.disabled = true;
@@ -403,18 +417,15 @@ stop_btn.addEventListener('click', async () => {
 });
 
 /* 
-Note 1: the mouseover event listener is added to the grid
-and not to every single cell because I think it consumes less resources.
-p.s. I do not know if the browser does some kind of optimization in this case. 
-
-Note 2: before adding a class to an element,
+Note 1: before adding a class to an element,
 I do not check if the class is already present,
 because in that case the add() method simply does not do anything.
 
-Note 3: It's used mouseover and not mousemove because 
+Note 2: It's used mouseover and not mousemove because 
 I want this callback function to be called 
 for every child-most node hovered (a cell in this case). 
-But, not for every single movement inside a cell. */
+But, not for every single movement inside a cell. 
+*/
 grid.addEventListener('mouseover', e => 
 {
     const cell_classlist = e.target.classList;

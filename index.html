@@ -17,11 +17,11 @@
         <div id="btns-container">
             <button id="clear-btn">clear</button>
             <button id="rubber-btn">rubber</button>
-            |
+            <span class="separator">|</span>
             <button id="draw-walls-btn">draw walls</button>
             <button id="select-targets-btn">select targets</button>
             <button id="select-root-btn">select root</button>
-            |
+            <span class="separator">|</span>
             <button id="run-btn" disabled>run</button>
             <button id="stop-btn" disabled>stop</button>
         </div>
@@ -31,9 +31,9 @@
 
     <div id="controls">
         <ul>
-            <li>Target(s) found: <span id="target-found">-</span></li>
-            <li>Cells visited: <span id="cells-visited">-</span></li>
-            <li>Steps: <span id="steps">-</span></li>
+            <li>Target(s) found: <span class="result" id="target-found">-</span></li>
+            <li>Cells visited: <span class="result" id="cells-visited">-</span></li>
+            <li>Steps: <span class="result" id="steps">-</span></li>
         </ul>
 
         <form>
@@ -51,7 +51,7 @@
             </fieldset>
             <br>
             <label for="step-pause">Step Pause</label>
-            <input id="step-pause" type="number" min="0" value="200">
+            <input id="step-pause" type="number" min="0" value="20">
         </form>
     </div>
 

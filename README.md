@@ -1,3 +1,4 @@
+![example](example.png)
 # Draw Algos
 Draw on a grid and let algorithms run.
 

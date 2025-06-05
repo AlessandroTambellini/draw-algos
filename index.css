@@ -23,7 +23,7 @@ body {
     color: var(--text-color);
     font-size: 1.25rem;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding: 2rem;
+    padding: 2vh 2vw;
 }
 
 main {
@@ -70,15 +70,23 @@ main {
  * Buttons & Colors
  */
 
-#btns-container > button {
-    /* I set the margin on each individual button instead of setting it to the container,
-    because when the screen shrinks and they move on a new line, they mantein the distance form the row above. */
+#btns-container {
+    background-color: var(--text-color);
+    padding: .5rem 1.5rem;
+    border-radius: 7px;
     margin-top: 1rem;
+}
+
+#btns-container .separator {
+    color: var(--background-color);
 }
 
 #btns-container button {
     border-radius: 7px;
     padding: .25em .5em;
+    /* I set the margin on each individual button instead of setting it to the container,
+    because when the screen shrinks and they move on a new line, they mantein the distance form the row above. */
+    margin-block: .5rem;
 }
 
 .wall {
@@ -176,6 +184,14 @@ main {
  * Miscellaneous
  */
 
+button {
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .7;
+}
+
 button, input {
     font: inherit;
 }
@@ -185,12 +201,18 @@ input {
     padding: .25em .5em;
 }
 
+#controls .result {
+    font-weight: bold;
+}
+
 #algos-fieldset {
     border-radius: 7px;
 }
 
 #step-pause {
     max-width: 12ch;
+    background-color: var(--background-color);
+    color: var(--text-color);
 }
 
 #err-msg {
@@ -198,7 +220,7 @@ input {
     font-weight: bold;
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1150px) {
     body {
         flex-direction: row;
         align-items: start;
@@ -206,7 +228,7 @@ input {
     }
 }
 
-/* button:focus {
-    border: 2px solid rgb(156, 16, 16);
-} */
+button:focus {
+    border: 3px solid red;
+}
 
