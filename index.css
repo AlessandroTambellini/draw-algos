@@ -59,7 +59,7 @@ main {
 .cell {
     height: 4vh;
     aspect-ratio: 1;
-    font-size: .75rem;
+    font-size: 0;
     color: var(--cell-color);
     border-right: 1px solid var(--secondary-color);
 }
