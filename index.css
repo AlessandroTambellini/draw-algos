@@ -229,6 +229,6 @@ input {
 }
 
 button:focus {
-    border: 3px solid red;
+    border-color: red;
 }
 
