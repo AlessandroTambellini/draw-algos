@@ -1,12 +1,12 @@
 :root {
     --background-color: rgb(26, 28, 32);
-    --text-color: rgb(236, 239, 242);
+    --text-color: hsl(210, 19%, 94%);
     --secondary-color: rgb(140, 144, 161);
     --cell-color: rgb(140, 144, 161);
     
-    /* Unused */
-    --delimiter-color: rgb(46, 48, 57);
-    --link-color: rgb(115, 122, 222);
+    --wall-color: 231, 3%, 49%;
+    --target-color: 0, 60%, 47%;
+    --root-color: 195, 100%, 44%;
 }
 
 * {
@@ -22,14 +22,16 @@ body {
     background-color: var(--background-color);
     color: var(--text-color);
     font-size: 1.25rem;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: sans-serif;
     padding: 2vh 2vw;
 }
 
-main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+@media (min-width: 1150px) {
+    body {
+        flex-direction: row;
+        align-items: start;
+        gap: 1rem;
+    }
 }
 
 #grid {
@@ -38,11 +40,6 @@ main {
     justify-content: center;
     align-items: center;
     width: fit-content;
-    
-    /* because in each cell is shown its position,
-    if, while drawing the walls, text is selected, it's noisy. */
-    -webkit-user-select: none;
-    user-select: none;
 
     border: 1px solid var(--secondary-color);
     /* I thought about setting .row:nth-last-of-type, but because the rows are inserted via js
@@ -64,47 +61,16 @@ main {
     border-right: 1px solid var(--secondary-color);
 }
 
-
-/*
- *
- * Buttons & Colors
- */
-
-#btns-container {
-    background-color: var(--text-color);
-    padding: .5rem 1.5rem;
-    border-radius: 7px;
-    margin-top: 1rem;
-}
-
-#btns-container .separator {
-    color: var(--background-color);
-}
-
-#btns-container button {
-    border-radius: 7px;
-    padding: .25em .5em;
-    /* I set the margin on each individual button instead of setting it to the container,
-    because when the screen shrinks and they move on a new line, they mantein the distance form the row above. */
-    margin-block: .5rem;
-}
-
 .wall {
-    background-color: rgb(97, 40, 40);
-    color: rgb(215, 215, 215); /* I do not want a color
-    that has a super high contrast with the background,
-    because it's distractive. I think a smoked white is
-    the right color. */
+    background-color: hsl(var(--wall-color));
 }
 
 .target {
-    background-color: rgb(192, 48, 48);
-    color: rgb(215, 215, 215);
+    background-color: hsl(var(--target-color));
 }
 
 .root {
-    background-color: rgb(0, 140, 255);
-    color: rgb(215, 215, 215);
+    background-color: hsl(var(--root-color));
 }
 
 .visited {
@@ -112,50 +78,16 @@ main {
 }
 
 .wall-hover {
-    /* I place the border inside to avoid moving the grid */
-    box-shadow: inset 0px 0px 0px 3px rgb(182, 45, 45);
+    /* I use a box-shadow instead of the border to avoid moving the grid. */
+    box-shadow: inset 0px 0px 0px 3px hsla(var(--wall-color), .8);
 }
 
 .target-hover {
-    box-shadow: inset 0px 0px 0px 3px rgb(240, 65, 185);
+    box-shadow: inset 0px 0px 0px 3px hsla(var(--target-color), .8);
 }
 
 .root-hover {
-    box-shadow: inset 0px 0px 0px 3px rgb(60, 226, 238);
-}
-
-#clear-btn {
-    background-color: var(--text-color);
-    color: var(--background-color);
-}
-
-#rubber-btn {
-    background-color: rgb(140, 144, 161);
-    color: var(--background-color);
-}
-
-#draw-walls-btn {
-    background-color: rgb(97, 40, 40);
-    color: var(--text-color);
-}
-
-#select-targets-btn {
-    background-color: rgb(192, 48, 48);
-    color: var(--text-color);
-}
-
-#select-root-btn {
-    background-color: rgb(0, 140, 255);
-    color: var(--text-color);
-}
-
-#run-btn {
-    background-color: green;
-    color: var(--text-color);
-}
-
-#stop-btn {
-    background-color: rgb(160, 200, 245);
+    box-shadow: inset 0px 0px 0px 3px hsla(var(--root-color), .8);
 }
 
 .target-found {
@@ -181,32 +113,104 @@ main {
 
 /*
  *
- * Miscellaneous
+ * Buttons
  */
 
-button {
-    cursor: pointer;
+#btns-container {
+    background-color: whitesmoke;
+    margin-top: .5em;
+    padding: .5rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    gap: .25em;
+    flex-wrap: wrap;
 }
 
-button:disabled {
-    opacity: .7;
+@media (min-width: 500px) {
+    #btns-container {
+        font-size: 1.2rem;
+    }
 }
 
-button, input {
-    font: inherit;
-}
-
-input {
-    border-radius: 7px;
+.controls-btn {
     padding: .25em .5em;
+    border-radius: 8px;
+    border: 2px solid #ababab;
+    transition: all 0.035s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    
+    /* I set the margin on each individual button instead of setting it to the container,
+    because when the screen shrinks and they move on a new line, they mantein the distance from the row above. */
+    margin-block: .5rem;
+    
+    --bkg-color: 0, 0%, 50%;
+    color: var(--text-color);
+    background-color: hsl(var(--bkg-color));
 }
+
+.controls-btn:not(:disabled):hover {
+    border-color: #999;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.controls-btn:not(:disabled):active {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transform: translateY(1px);
+}
+
+.controls-btn:focus {
+    border-color: darkred;
+
+    /* For some reason, this hasn't the effect I expect. */
+    /* border-color: hsla(var(--bkg-color), .2); */
+}
+
+.separator {
+    background-color: rgb(66, 66, 66);
+    width: 5px;
+    display: inline-block;
+    aspect-ratio: 1;
+    border-radius: 100%;
+    margin-inline: .25em;
+}
+
+#clear-btn {
+    --bkg-color: 210, 19%, 94%;
+    color: var(--background-color);
+}
+
+#rubber-btn {
+    --bkg-color: 229, 62%, 35%;
+}
+
+#draw-walls-btn {
+    --bkg-color: var(--wall-color);
+}
+
+#select-targets-btn {
+    --bkg-color: var(--target-color);
+}
+
+#select-root-btn {
+    --bkg-color: var(--root-color);
+}
+
+#run-btn {
+    --bkg-color: 120, 100%, 25%;
+}
+
+#stop-btn {
+    background-color: rgb(163, 11, 11);
+}
+
+
+/*
+  Controls */
 
 #controls .result {
     font-weight: bold;
-}
-
-#algos-fieldset {
-    border-radius: 7px;
 }
 
 #step-pause {
@@ -220,15 +224,27 @@ input {
     font-weight: bold;
 }
 
-@media (min-width: 1150px) {
-    body {
-        flex-direction: row;
-        align-items: start;
-        gap: 1rem;
-    }
+/*
+ *
+ * Miscellaneous
+ */
+
+button {
+    cursor: pointer;
 }
 
-button:focus {
-    border-color: red;
+button:disabled {
+    opacity: .5;
 }
+
+button, input {
+    font: inherit;
+}
+
+input, fieldset {
+    border-radius: 7px;
+    padding: .25em .5em;
+}
+
+
 
