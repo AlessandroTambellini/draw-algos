@@ -7,6 +7,23 @@
     --wall-color: 231, 3%, 49%;
     --target-color: 0, 60%, 47%;
     --root-color: 195, 100%, 44%;
+
+    --min-cell-size: 25px;
+    --max-cell-size: 50px;
+    --max-cells-per-row: 20;
+    --max-num-of-rows: 20;
+
+    --cell-size: round(down,
+        clamp(var(--min-cell-size), calc(95vw / var(--max-cells-per-row)), var(--max-cell-size)), 
+        5px);
+    
+    --row-width: round(down, 
+        min(95vw, calc(var(--max-cells-per-row) * var(--cell-size))), 
+        var(--cell-size));
+    
+    --grid-height: round(down, 
+        min(90vh, calc(var(--max-num-of-rows) * var(--cell-size))), 
+        var(--cell-size));
 }
 
 * {
@@ -14,51 +31,49 @@
 }
 
 body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    margin: 0;
     background-color: var(--background-color);
     color: var(--text-color);
     font-size: 1.25rem;
     font-family: sans-serif;
-    padding: 2vh 2vw;
 }
 
-@media (min-width: 1150px) {
-    body {
-        flex-direction: row;
-        align-items: start;
-        gap: 1rem;
-    }
+body > * {
+    margin-inline: auto;
+    width: fit-content;
 }
 
 #grid {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    width: fit-content;
-
-    border: 1px solid var(--secondary-color);
-    /* I thought about setting .row:nth-last-of-type, but because the rows are inserted via js
-    after the css is loaded, it has not effect. */
-    border-bottom: 2px solid var(--secondary-color);
+    height: var(--grid-height);
+    overflow-y: hidden;
 }
 
 .row {
     display: flex;
-    border-top: 1px solid var(--secondary-color);
-    border-left: 1px solid var(--secondary-color);
+    width: var(--row-width);
+    height: var(--cell-size);
+    min-height: var(--cell-size);
+    overflow-x: hidden;
 }
 
 .cell {
-    height: 4vh;
+    width: var(--clod-size);
+    min-width: var(--clod-size);
     aspect-ratio: 1;
-    font-size: 0;
     color: var(--cell-color);
-    border-right: 1px solid var(--secondary-color);
+    /* box-shadow: inset 0 0 1px grey; */
+    font-size: 0;
+}
+
+.row:nth-child(even) .cell:nth-child(even),
+.row:nth-child(odd) .cell:nth-child(odd) {
+    background-color: rgba(0, 0, 255, 0.112);
+}
+
+.row:nth-child(even) .cell:nth-child(odd),
+.row:nth-child(odd) .cell:nth-child(even) {
+    background-color: rgba(128, 128, 128, 0.335);
 }
 
 .wall {
@@ -117,7 +132,6 @@ body {
  */
 
 #btns-container {
-    background-color: whitesmoke;
     margin-top: .5em;
     padding: .5rem 1.5rem;
     display: flex;
@@ -126,6 +140,8 @@ body {
     font-size: 1.1rem;
     gap: .25em;
     flex-wrap: wrap;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 255, 0.112);   
 }
 
 @media (min-width: 500px) {
@@ -209,18 +225,21 @@ body {
 /*
   Controls */
 
-#controls .result {
-    font-weight: bold;
+form {
 }
 
 #step-pause {
-    max-width: 12ch;
     background-color: var(--background-color);
     color: var(--text-color);
+    margin-top: .5em;
 }
 
 #err-msg {
     color: rgb(150, 19, 19);
+    font-weight: bold;
+}
+
+.result {
     font-weight: bold;
 }
 
@@ -242,9 +261,10 @@ button, input {
 }
 
 input, fieldset {
-    border-radius: 7px;
+    border-radius: 8px;
     padding: .25em .5em;
 }
+
 
 
 
