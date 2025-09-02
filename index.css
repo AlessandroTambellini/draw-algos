@@ -47,6 +47,10 @@ body > * {
     flex-direction: column;
     height: var(--grid-height);
     overflow-y: hidden;
+    overflow-x: hidden;
+    box-shadow: 0 0 0px 2px grey;
+    border-radius: 8px;
+    margin-top: 3vh;
 }
 
 .row {
@@ -54,7 +58,7 @@ body > * {
     width: var(--row-width);
     height: var(--cell-size);
     min-height: var(--cell-size);
-    overflow-x: hidden;
+    /* overflow-x: hidden; */
 }
 
 .cell {
@@ -62,34 +66,36 @@ body > * {
     min-width: var(--clod-size);
     aspect-ratio: 1;
     color: var(--cell-color);
-    /* box-shadow: inset 0 0 1px grey; */
     font-size: 0;
 }
 
 .row:nth-child(even) .cell:nth-child(even),
 .row:nth-child(odd) .cell:nth-child(odd) {
-    background-color: rgba(0, 0, 255, 0.112);
+    background-color: rgba(0, 0, 0, 0.13);
 }
 
 .row:nth-child(even) .cell:nth-child(odd),
 .row:nth-child(odd) .cell:nth-child(even) {
-    background-color: rgba(128, 128, 128, 0.335);
+    background-color: rgba(255, 255, 255, 0.13);
 }
 
-.wall {
-    background-color: hsl(var(--wall-color));
+.cell.wall {
+    background-color: hsl(var(--wall-color)) !important;
+    box-shadow: 0 0 2px black;
 }
 
-.target {
-    background-color: hsl(var(--target-color));
+.cell.target {
+    background-color: hsl(var(--target-color)) !important;
+    box-shadow: 0 0 2px black;
 }
 
-.root {
-    background-color: hsl(var(--root-color));
+.cell.root {
+    background-color: hsl(var(--root-color)) !important;
+    box-shadow: 0 0 2px black;
 }
 
-.visited {
-    background-color: rgb(160, 200, 245);
+.cell.visited {
+    background-color: rgb(160, 200, 245) !important;
 }
 
 .wall-hover {
@@ -123,6 +129,7 @@ body > * {
 
 .rubber-hover {
     opacity: .5;
+    box-shadow: none !important;
 }
 
 
@@ -132,7 +139,7 @@ body > * {
  */
 
 #btns-container {
-    margin-top: .5em;
+    /* margin-top: .5em; */
     padding: .5rem 1.5rem;
     display: flex;
     align-items: center;
@@ -228,10 +235,17 @@ body > * {
 form {
 }
 
+label[for=step-pause] {
+    display: inline-block;
+    margin-left: 1rem;
+    padding-top: 1rem;
+}
+
 #step-pause {
     background-color: var(--background-color);
     color: var(--text-color);
     margin-top: .5em;
+
 }
 
 #err-msg {
@@ -248,7 +262,7 @@ form {
  * Miscellaneous
  */
 
-button {
+button:not(:disabled) {
     cursor: pointer;
 }
 
@@ -262,9 +276,17 @@ button, input {
 
 input, fieldset {
     border-radius: 8px;
-    padding: .25em .5em;
+    padding: .25em 1rem;
 }
 
-
-
-
+.display-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}

@@ -22,6 +22,26 @@ document.querySelector('form').addEventListener('submit', e => e.preventDefault(
 const algos_fieldset = document.querySelector('#algos-fieldset');
 const step_pause_input = document.querySelector('#step-pause');
 
+let visible_rows = 0;
+let visible_cols = 0;
+
+window.addEventListener('resize', calculate_visible_cells);
+
+function calculate_visible_cells()
+{
+    visible_rows = grid.clientHeight / grid.querySelector('.row').clientHeight; 
+    visible_cols = grid.clientWidth / grid.querySelector('.cell').clientWidth; 
+
+    for (let i = 0; i < visible_rows; i++) {
+        const curr_row = grid.querySelectorAll('.row')[i];
+        for (let j = 0; j < visible_cols; j++) {
+            curr_row.querySelectorAll('.cell')[j].textContent = `${i},${j}`;
+        }
+    }
+}
+
+calculate_visible_cells();
+
 /*
  * 
  *  Global vars/flags 
@@ -129,10 +149,10 @@ class Bfs {
             const x = Number(curr.textContent.split(',')[0]);
             const y = Number(curr.textContent.split(',')[1]);
             
-            if (x > 0) ds.push(grid.childNodes[x - 1].childNodes[y]);
-            if (y < grid.childNodes[x].childNodes.length - 1) ds.push(grid.childNodes[x].childNodes[y + 1]);
-            if (x < grid.childNodes.length - 1) ds.push(grid.childNodes[x + 1].childNodes[y]);
-            if (y > 0) ds.push(grid.childNodes[x].childNodes[y - 1]);
+            if (x > 0) ds.push(grid.children[x - 1].children[y]);
+            if (y < visible_cols - 1) ds.push(grid.children[x].children[y + 1]);
+            if (x < visible_rows - 1) ds.push(grid.children[x + 1].children[y]);
+            if (y > 0) ds.push(grid.children[x].children[y - 1]);
         }
         
         /* if the algo terminated without being freezed */
@@ -220,10 +240,10 @@ class Dfs {
             const x = Number(curr.textContent.split(',')[0]);
             const y = Number(curr.textContent.split(',')[1]);
             
-            if (y > 0) ds.push(grid.childNodes[x].childNodes[y - 1]);
-            if (x < grid.childNodes.length - 1) ds.push(grid.childNodes[x + 1].childNodes[y]);
-            if (y < grid.childNodes[x].childNodes.length - 1) ds.push(grid.childNodes[x].childNodes[y + 1]);
-            if (x > 0) ds.push(grid.childNodes[x - 1].childNodes[y]);
+            if (y > 0) ds.push(grid.children[x].children[y - 1]);
+            if (x < visible_rows - 1) ds.push(grid.children[x + 1].children[y]);
+            if (y < visible_cols - 1) ds.push(grid.children[x].children[y + 1]);
+            if (x > 0) ds.push(grid.children[x - 1].children[y]);
         }
 
         if (!this.#f_freeze) {
@@ -244,24 +264,24 @@ class AnotherAlgo {
  *  App Logic
  */
 
-let cells_per_row = -1;
-if (window.innerWidth <= 720) cells_per_row = 10;
-else if (window.innerWidth <= 960) cells_per_row = 15;
-else cells_per_row = 20;
-for (let i = 0; i < cells_per_row; i++) 
-{
-    const row = document.createElement('div');
-    row.classList.add('row');
+// let cells_per_row = -1;
+// if (window.innerWidth <= 720) cells_per_row = 10;
+// else if (window.innerWidth <= 960) cells_per_row = 15;
+// else cells_per_row = 20;
+// for (let i = 0; i < cells_per_row; i++) 
+// {
+//     const row = document.createElement('div');
+//     row.classList.add('row');
 
-    for (let j = 0; j < cells_per_row; j++) 
-    {
-        const cell = document.createElement('div');
-        cell.classList.add('cell');
-        cell.textContent = i + ',' + j;
-        row.appendChild(cell);
-    }
-    grid.appendChild(row);
-}
+//     for (let j = 0; j < cells_per_row; j++) 
+//     {
+//         const cell = document.createElement('div');
+//         cell.classList.add('cell');
+//         cell.textContent = i + ',' + j;
+//         row.appendChild(cell);
+//     }
+//     grid.appendChild(row);
+// }
 
 /* If I drag over the cells, the mouseup is not detected.
 I guess that's because the drop event interferes with mouseup.
@@ -278,9 +298,12 @@ clear_btn.addEventListener('click', () =>
     if (!f_clear) return;
     f_rubber = f_draw_walls = f_select_targets = f_select_root = false;
     
-    grid.childNodes.forEach(row => {
-        row.childNodes.forEach(cell => cell.className = 'cell'); 
-    });
+    for (let i = 0; i < grid.children.length; i++) {
+        for (let j = 0; j < grid.children[0].children.length; j++) {
+            grid.children[i].children[j].className = 'cell';
+        }
+    }
+
     root = null;
     targets = 0;
     
@@ -334,7 +357,9 @@ run_btn.addEventListener('click', async () => {
 
         f_rubber = f_draw_walls = f_select_targets = false;
         
-        btns_container.childNodes.forEach(btn => btn.disabled = true);
+        for (let i = 0; i < btns_container.children.length; i++) {
+            btns_container.children[i].disabled = true;
+        }
         stop_btn.disabled = false;
         run_btn.textContent = 'reset';
         
@@ -374,12 +399,13 @@ run_btn.addEventListener('click', async () => {
     else
     {
         f_run = false;
-        grid.childNodes.forEach(row => {
-            row.childNodes.forEach(cell => {
-                cell.classList.remove('visited');
-                cell.classList.remove('target-found');
-            });
-        });
+
+        for (let i = 0; i < grid.children.length; i++) {
+            for (let j = 0; j < grid.children[0].children.length; j++) {
+                grid.children[i].children[j].classList.remove('visited');
+                grid.children[i].children[j].classList.remove('target-found');
+            }
+        }
         
         algo.reset_data();
         algo.set_f_freeze(false);
