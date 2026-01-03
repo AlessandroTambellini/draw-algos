@@ -1,4 +1,4 @@
-![example](example-new.webp)
+![snapshot](snapshot.webp)
 # Draw Algos
 Draw on a grid and let algos run.  
 Play with it at: https://github.com/AlessandroTambellini/draw-algos  
