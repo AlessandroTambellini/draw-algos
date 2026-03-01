@@ -48,6 +48,12 @@
             font-family: sans-serif;
         }
 
+        @media (hover: none) and (pointer: coarse) and (max-width: 500px) {
+            body {
+                font-size: 1.10rem;
+            }
+        }
+
         body > * {
             margin-inline: auto;   
         }
@@ -306,6 +312,30 @@
         }
         td:last-child {
             padding-right: 1ch;
+        }
+
+        hr {
+			margin-block: 3em;
+			border: none;
+			text-align: center;
+		}
+
+		hr::after {
+			content: "***";
+		}
+
+        article > h2 {
+            text-align: center;
+        }
+
+        article > p {
+            max-width: 70ch;
+            line-height: 1.4;
+            margin: auto;
+        }
+
+        article {
+            margin-bottom: 1em;
         }
     </style>
 </head>
@@ -799,6 +829,20 @@
         <tbody>
         </tbody>
     </table>
+
+    <hr>
+
+    <article>
+        <h2>Why only BFS and DFS</h2>
+        <p>
+            BFS and DFS are the principal algorithms to search for specific nodes in a graph.
+            It's either making a step in each direction or searching in a single direction as long as possible.
+            Algos like UCS, IDDFS and Bidirectional Search are either evolutions of the two basic ones
+            or have some kind of information about paths and nodes (e.g. cost)
+            <br>
+            So, in case of an "open canvas" with no info, BFS and DFS are the primordial algorithms
+        </p>
+    </article>
     
     <template id="result-row">
         <tr>
@@ -853,7 +897,7 @@
          *  Global flags/vars 
          */
 
-        let algo = null;
+        // let algo = null;
         let root = null;
         let tot_targets = 0;
 
@@ -959,7 +1003,6 @@
                 }
 
                 /* The f_run flag is used to avoid a queue of clicks. */
-                // TODO review the f_fun flag
                 f_run = f_clear = false;
 
                 f_rubber = f_draw_walls = f_select_targets = false;
@@ -977,27 +1020,23 @@
 
                 algos_fieldset.disabled = step_pause_input.disabled = true;
 
-                switch (choosen_algo) {
-                    case BFS:
-                        algo = new Bfs();
-                        break;
-                    case DFS:
-                        algo = new Dfs();
-                        break;
-                    // case ANOTHERALGO:
-                    //     algo = new AnotherAlgo();
-                    //     break;
-                    default:
-                        console.error('Error: the algorithm specified is not valid.');
-                        break;
+                if (choosen_algo === BFS) {
+                    reset_data(algo);
+                    algo.name = BFS;
+                } else if (choosen_algo === DFS) {
+                    reset_data(algo);
+                    algo.name = DFS;
+                } else {
+                    console.error('Error: the algorithm specified is not valid.');
+                    return;
                 }
 
-                algo.set_step_pause(step_pause);
+                algo.step_pause = step_pause;
                 is_run = false;
                 f_run = true;
 
-                const res = await algo.run();
-                if (res) {
+                const run_successfully = await run_algo();
+                if (run_successfully) {
                     stop_btn.disabled = true;
                     f_clear = true;
                     clear_btn.disabled = run_btn.disabled = false;
@@ -1014,15 +1053,13 @@
                     }
                 }
                 
-                algo.reset_data();
-                algo.set_f_freeze(false);
+                reset_data(algo)
                 
                 run_btn.textContent = 'run';
                 stop_btn.textContent = 'stop';
                 stop_btn.disabled = true;
                 algos_fieldset.disabled = step_pause_input.disabled = false;
-                clear_btn.disabled = rubber_btn.disabled = 
-                    draw_walls_btn.disabled = select_targets_btn.disabled = false;
+                clear_btn.disabled = rubber_btn.disabled = draw_walls_btn.disabled = select_targets_btn.disabled = false;
 
                 is_run = is_stop = true;
                 f_clear = f_run = true;
@@ -1034,15 +1071,15 @@
             if (is_stop) {
                 stop_btn.textContent = 'resume';
                 run_btn.disabled = false;
-                algo.set_f_freeze(true);
+                algo.f_freeze = true;
                 is_stop = false;
             } else {
                 run_btn.disabled = true;
                 stop_btn.textContent = 'stop';
-                algo.set_f_freeze(false);
+                algo.f_freeze = false;
                 is_stop = true;
-                const res = await algo.run();
-                if (res) {
+                const run_successfully = await run_algo();
+                if (run_successfully) {
                     stop_btn.disabled = true;
                     run_btn.disabled = false;
                 }
@@ -1051,7 +1088,7 @@
 
         /* 
         Note 1: before adding a class to an element,
-        I do not check if the class is already present,
+        I don't check if the class is already present,
         because in that case the add() method simply does not do anything.
 
         Note 2: It's used mouseover and not mousemove because 
@@ -1189,7 +1226,7 @@
             const th = vrow.querySelector('th');
             th.textContent = results_table.querySelectorAll('tbody th').length+1 ?? 1;
             const tds = vrow.querySelectorAll("td");
-            tds[0].textContent = algo.constructor.name.toUpperCase();
+            tds[0].textContent = algo.name === BFS ? 'BFS' : 'DFS';
             tds[1].textContent = `${found_targets}/${tot_targets} ${found_targets === tot_targets ? '✅' : '❌'}`;
             tds[2].textContent = cells_visited;
             tds[3].textContent = steps;
@@ -1204,187 +1241,100 @@
 
         const BFS = 0;
         const DFS = 1;
-        const WHATEVER = 2;
 
-        class Bfs {
+        const algo = {
             // ds stands for data structure
-            #freezed_ds = null;
-            #freezed_visited = null;
-            #freezed_found_targets = 0;
-            #freezed_steps = 0;
-            #f_freeze = false;
-            #step_pause = 0;
+            freezed_ds: null,
+            freezed_visited: null,
+            freezed_found_targets: 0,
+            freezed_steps: 0,
+            f_freeze: false,
+            step_pause: 0,
+            name: 0,
+        };
 
-            set_f_freeze(state) {
-                this.#f_freeze = state;
-            }
+        /* There are only 2 differences between bfs and dfs:
+            - which element is removed from the array on each iteration (first or last)
+            - the order in which cells are pushed to the array to have the order top, right, bottom, left 
+        */
 
-            set_step_pause(step_pause) {
-                this.#step_pause = step_pause;
+        async function run_algo() 
+        {
+            if (!root) {
+                console.error('Error: no root selected.');
+                return false;
             }
             
-            reset_data() {
-                this.#freezed_ds = null;
-                this.#freezed_visited = null;
-                this.#freezed_found_targets = 0;
-                this.#freezed_steps = 0;
-            }
+            const visited = algo.freezed_visited ? algo.freezed_visited : new Set();
+            const ds = algo.freezed_ds ? algo.freezed_ds : [ root ];
+            let found_targets = algo.freezed_found_targets;
+            let steps = algo.freezed_steps;
 
-            async run() 
+            while (ds.length > 0) 
             {
-                if (!root) {
-                    console.error('Error: no root selected.');
-                    return 0;
+                if (algo.f_freeze) {
+                    algo.freezed_ds = ds;
+                    algo.freezed_visited = visited;
+                    algo.freezed_found_targets = found_targets;
+                    algo.freezed_steps = steps;
+                    break;
                 }
                 
-                const visited = this.#freezed_visited ? this.#freezed_visited : new Set();
-                const ds = this.#freezed_ds ? this.#freezed_ds : [ root ];
-                let found_targets = this.#freezed_found_targets;
-                let steps = this.#freezed_steps;
+                if (tot_targets > 0 && found_targets === tot_targets) break;
+                
+                steps += 1;
+                
+                const curr = algo.name === BFS ? ds.shift() : ds.pop();
 
-                while (ds.length > 0) 
+                // Skip if it's a wall or if it's already visited.
+                if (curr.classList.contains('wall') || visited.has(curr.textContent)) continue;
+
+                visited.add(curr.textContent);
+
+                if (!curr.classList.contains('target') && !curr.classList.contains('root')) {
+                    curr.classList.add('visited');
+                }
+
+                if (curr.classList.contains('target')) 
                 {
-                    if (this.#f_freeze) {
-                        this.#freezed_ds = ds;
-                        this.#freezed_visited = visited;
-                        this.#freezed_found_targets = found_targets;
-                        this.#freezed_steps = steps;
-                        break;
-                    }
-                    
-                    if (tot_targets > 0 && found_targets === tot_targets) break;
-                    
-                    steps += 1;
-                    const curr = ds.shift();
+                    found_targets += 1;
+                    curr.classList.add('target-found');
+                }
 
-                    // Skip if it's a wall or if it's already visited.
-                    if (curr.classList.contains('wall') || visited.has(curr.textContent)) continue;
-
-                    visited.add(curr.textContent);
-
-                    if (!curr.classList.contains('target') && !curr.classList.contains('root')) {
-                        curr.classList.add('visited');
-                    }
-
-                    if (curr.classList.contains('target')) 
-                    {
-                        found_targets += 1;
-                        curr.classList.add('target-found');
-                    }
-
-                    await new Promise(resolve => setTimeout(resolve, this.#step_pause));
-                    
-                    const x = Number(curr.textContent.split(',')[0]);
-                    const y = Number(curr.textContent.split(',')[1]);
-                    
+                await new Promise(resolve => setTimeout(resolve, algo.step_pause));
+                
+                const x = Number(curr.textContent.split(',')[0]);
+                const y = Number(curr.textContent.split(',')[1]);
+                
+                if (algo.name === BFS)
+                {
                     if (x > 0) ds.push(grid.children[x - 1].children[y]);
                     if (y < visible_cols - 1) ds.push(grid.children[x].children[y + 1]);
                     if (x < visible_rows - 1) ds.push(grid.children[x + 1].children[y]);
                     if (y > 0) ds.push(grid.children[x].children[y - 1]);
-                }
-                
-                /* if the algo terminated without being freezed */
-                if (!this.#f_freeze) {
-                    add_res(tot_targets, found_targets, visited.size, steps);
-                    return 1;
                 } else {
-                    return 0;
-                }
-            }
-        }
-
-        class Dfs {
-            #freezed_ds = null;
-            #freezed_visited = null;
-            #freezed_found_targets = 0;
-            #freezed_steps = 0;
-            #f_freeze = false;
-            #step_pause = 0;
-            
-            set_f_freeze(state) {
-                this.#f_freeze = state;
-            }
-
-            set_step_pause(step_pause) {
-                this.#step_pause = step_pause;
-            }
-            
-            reset_data() {
-                this.#freezed_ds = null;
-                this.#freezed_visited = null;
-                this.#freezed_found_targets = 0;
-                this.#freezed_steps = 0;
-            }
-
-            /* There are only 2 differences between bfs and dfs:
-            - which element is removed from the array on each iteration
-            (first or last)
-            - the order in which cells are pushed to the array
-            to have the order top, right, bottom, left */
-            async run() 
-            {
-                if (!root) {
-                    console.error('Error: dfs: no root defined.');
-                    return 0;
-                }
-
-                const visited = this.#freezed_visited ? this.#freezed_visited : new Set();
-                const ds = this.#freezed_ds ? this.#freezed_ds : [ root ];
-                let found_targets = this.#freezed_found_targets;
-                let steps = this.#freezed_steps;
-                
-                while (ds.length > 0) 
-                {
-                    if (this.#f_freeze) 
-                    {
-                        this.#freezed_ds = ds;
-                        this.#freezed_visited = visited;
-                        this.#freezed_found_targets = found_targets;
-                        this.#freezed_steps = steps;
-                        break;
-                    }
-
-                    if (tot_targets > 0 && found_targets === tot_targets) break;
-                    
-                    steps += 1;
-                    const curr = ds.pop();
-                    
-                    // Skip if it's a wall or if it was already visited.
-                    if (curr.classList.contains('wall') || visited.has(curr.textContent)) continue;
-                    
-                    visited.add(curr.textContent);
-
-                    if (!curr.classList.contains('target') && !curr.classList.contains('root')) {
-                        curr.classList.add('visited');
-                    }
-                    
-                    if (curr.classList.contains('target')) {
-                        found_targets += 1;
-                        curr.classList.add('target-found');
-                    }
-                    
-                    await new Promise(resolve => setTimeout(resolve, this.#step_pause));
-                    
-                    const x = Number(curr.textContent.split(',')[0]);
-                    const y = Number(curr.textContent.split(',')[1]);
-                    
                     if (y > 0) ds.push(grid.children[x].children[y - 1]);
                     if (x < visible_rows - 1) ds.push(grid.children[x + 1].children[y]);
                     if (y < visible_cols - 1) ds.push(grid.children[x].children[y + 1]);
                     if (x > 0) ds.push(grid.children[x - 1].children[y]);
                 }
-
-                if (!this.#f_freeze) {
-                    add_res(tot_targets, found_targets, visited.size, steps);
-                    return 1;
-                } else {
-                    return 0;
-                }
+            }
+            
+            /* if the algo terminated without being freezed */
+            if (!algo.f_freeze) {
+                add_res(tot_targets, found_targets, visited.size, steps);
+                return true;
+            } else {
+                return false;
             }
         }
 
-        class AnotherAlgo {
-
+        function reset_data() {
+            algo.freezed_ds = null;
+            algo.freezed_visited = null;
+            algo.freezed_found_targets = 0;
+            algo.freezed_steps = 0;
+            algo.f_freeze = false;
         }
     </script>
 </body>
